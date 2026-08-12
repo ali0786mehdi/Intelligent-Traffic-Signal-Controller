@@ -1,0 +1,58 @@
+services:
+  traffic-rl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: traffic-rl-dqn:latest
+    container_name: traffic-rl-dqn
+    tty: true          # keeps the container alive for `docker compose exec`
+    stdin_open: true
+    volumes:
+      # Live-mount the whole project so code edits on the host are
+      # reflected inside the container immediately — no rebuild needed
+      # for day-to-day development.
+      - .:/app
+      # Keep model checkpoints and result outputs on the host so they
+      # survive container recreation.
+      - ./agent/models:/app/agent/models
+      - ./results:/app/results
+    environment:
+      - SUMO_HOME=/usr/share/sumo
+      - PYTHONUNBUFFERED=1
+    # Uncomment to cap resource usage on shared machines:
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "4"
+    #       memory: 8G
+
+  # Optional: run training directly via `docker compose run train`
+  # instead of shelling in manually.
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: traffic-rl-dqn:latest
+    volumes:
+      - .:/app
+      - ./agent/models:/app/agent/models
+      - ./results:/app/results
+    environment:
+      - SUMO_HOME=/usr/share/sumo
+      - PYTHONUNBUFFERED=1
+    command: ["python3", "train.py", "--config", "config.yaml"]
+
+  # Optional: run the full evaluation harness via `docker compose run evaluate`
+  evaluate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: traffic-rl-dqn:latest
+    volumes:
+      - .:/app
+      - ./agent/models:/app/agent/models
+      - ./results:/app/results
+    environment:
+      - SUMO_HOME=/usr/share/sumo
+      - PYTHONUNBUFFERED=1
+    command: ["python3", "evaluate.py", "--config", "config.yaml"]

@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+traci
+sumolib
+torch
+numpy
+pandas
+matplotlib
+gymnasium
+pyyaml
+pytest
