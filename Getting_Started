@@ -1,0 +1,410 @@
+# Getting Started From Zero
+## A No-Assumptions Guide to Building This Project
+
+This assumes you know nothing yet — not SUMO, not reinforcement learning, not Docker, not even how to run a command. Every step says **what to do**, **what it means**, and **what you should see** when it works. Follow it in order; don't skip ahead.
+
+---
+
+## Part 0: Understand What You're Actually Building (5 min read)
+
+Before touching a keyboard, get this mental picture straight — it will make every later step make sense instead of feeling like magic commands.
+
+**The problem:** A traffic light at a real intersection usually just cycles on a timer (30 seconds green, 3 seconds yellow, repeat) no matter what's actually happening on the road. That's dumb when one direction is empty and another is backed up.
+
+**The idea:** Instead of a timer, we want a "smart" controller that looks at the actual traffic and decides which direction should get green right now. We teach this controller using **Reinforcement Learning (RL)** — a way of training software by letting it try things, see the result, and get better over time, similar to how you'd learn a video game by playing it repeatedly rather than reading a manual.
+
+**The pieces:**
+- **SUMO** — a free traffic simulator. It's a fake city intersection running on your computer, with fake cars driving through it. Nothing here is real traffic; it's entirely simulated, which means we can experiment safely.
+- **TraCI** — the "remote control" that lets a Python program talk to SUMO while it's running: read how many cars are waiting, and tell the traffic light which color to show.
+- **DQN (Deep Q-Network)** — the specific RL technique/algorithm we use to train the "brain" that decides which light to turn green. "Deep" just means it uses a neural network (a small one, in our case) instead of a lookup table.
+- **Docker / Codespaces** — a way to get a ready-made computer environment (with SUMO etc. already installed) instead of installing everything manually on your own laptop, which is fragile and error-prone.
+
+**What "done" looks like:** A trained AI controller that, when tested in the simulator, makes cars wait less on average than a normal timer-based traffic light — with numbers/graphs to prove it.
+
+That's the whole project. Everything below is just "how do I actually build that, one small piece at a time."
+
+---
+
+## Part 1: Accounts and Tools You Need (10 min)
+
+You need exactly two things — nothing installed on your own computer is required if you use GitHub Codespaces (recommended for beginners, since it avoids all local setup problems).
+
+1. **A GitHub account.** If you don't have one: go to https://github.com and sign up (free).
+2. **A web browser.** That's genuinely it — Codespaces runs entirely in the browser (or in VS Code desktop if you prefer, but browser is simplest to start).
+
+You do **not** need to install SUMO, Python, or anything else on your own laptop for this path. If your college specifically requires you to run things locally without Codespaces, say so and the setup changes slightly (see `SETUP.md` from earlier in this project instead).
+
+---
+
+## Part 2: Create Your Project Repository (10 min)
+
+A "repository" (repo) is just a project folder that lives on GitHub and tracks every change you make.
+
+1. Go to https://github.com, log in.
+2. Click the **+** icon top-right → **New repository**.
+3. Name it something like `traffic-signal-dqn`.
+4. Set it to **Public** or **Private** (either is fine for a college project).
+5. Check **"Add a README file"**.
+6. Click **Create repository**.
+
+You now have an empty project on GitHub. Every file you create in this whole project (Dockerfile, code, the paper, etc.) gets added here.
+
+### Add the files already prepared
+You already have these files from earlier in this conversation: `Dockerfile`, `compose.yml`, `requirements.txt`, `.dockerignore`, `.devcontainer/devcontainer.json`, `EXECUTION_PLAN.md`, `SETUP.md`, `.kiro/` folder, `paper.tex`.
+
+To add them to your repo through the browser (no command line needed yet):
+1. On your repo page, click **Add file → Upload files**.
+2. Drag in the files/folders (for folders like `.devcontainer` and `.kiro`, GitHub's web uploader supports dragging whole folders in most browsers; if it doesn't, create the files one at a time via **Add file → Create new file** and type the path, e.g. typing `.devcontainer/devcontainer.json` as the filename automatically creates the folder).
+3. Scroll down, click **Commit changes**.
+
+**Checkpoint:** Your repo's file list shows all these files. ✅
+
+---
+
+## Part 3: Launch Your Cloud Development Environment (10 min)
+
+This is where "a computer with everything installed" gets created for you automatically.
+
+1. On your repo page, click the green **Code** button.
+2. Click the **Codespaces** tab.
+3. Click **Create codespace on main**.
+4. Wait. A browser tab opens showing "Setting up your codespace..." — this is building an environment with SUMO, Python, and PyTorch installed, using the `Dockerfile` you uploaded. **This takes a few minutes the first time.** Don't close the tab.
+5. When it finishes, you'll see what looks like VS Code, running in your browser, with a terminal panel at the bottom.
+
+**What just happened:** GitHub read your `.devcontainer/devcontainer.json` file, saw it pointed at your `Dockerfile`/`compose.yml`, and built a cloud computer exactly matching those instructions — SUMO, TraCI, and PyTorch all pre-installed, so you never have to install them by hand.
+
+### Verify it worked
+Click into the terminal panel at the bottom of the screen (or open one via the menu: **Terminal → New Terminal**) and type:
+```bash
+python3 -c "import traci, sumolib, torch; print('Everything works!')"
+sumo --version
+```
+Press Enter after each line.
+
+**Checkpoint:** You see `Everything works!` printed, and `sumo --version` prints a version number, not an error. ✅ If you see an error here, stop and re-read `CODESPACES.md` from earlier — don't proceed until this passes, since every later step depends on it.
+
+---
+
+## Part 4: Learn the Terminal Basics You'll Actually Use (5 min)
+
+You'll be typing commands into that terminal panel a lot. Here's the minimum you need to know:
+
+| Command | What it does |
+|---|---|
+| `ls` | Lists files in the current folder |
+| `cd foldername` | Moves into a folder |
+| `cd ..` | Moves up one folder |
+| `mkdir foldername` | Creates a new folder |
+| `pwd` | Shows which folder you're currently in |
+| `python3 script.py` | Runs a Python file |
+| Up-arrow key | Re-shows your last typed command (huge time-saver) |
+
+You're always working inside `/app` in this project — that's your whole project folder. Type `pwd` right now to confirm you're there.
+
+---
+
+## Part 5: Build the Folder Structure (5 min)
+
+In the terminal:
+```bash
+mkdir -p network env agent/models baselines tests results/logs results/plots
+touch env/__init__.py agent/__init__.py baselines/__init__.py
+ls
+```
+**What this does:** creates empty folders that will hold different parts of the project — `network/` for the SUMO map files, `env/` for the code that controls the simulation, `agent/` for the AI code, `results/` for output graphs and numbers.
+
+**Checkpoint:** Typing `ls` shows folders named `network`, `env`, `agent`, `baselines`, `tests`, `results`. ✅
+
+---
+
+## Part 6: Build Your First Traffic Intersection (15 min)
+
+This is the actual road map the cars will drive on.
+
+```bash
+netgenerate --grid --grid.number=1 --grid.length=200 --default.lanenumber=2 -o network/intersection.net.xml
+```
+
+**What this does:** `netgenerate` is a SUMO tool that builds road networks. This command says "make one intersection (`grid.number=1`), with roads 200 meters long, 2 lanes each direction, and save it as `intersection.net.xml`."
+
+Check it was created:
+```bash
+ls network/
+```
+You should see `intersection.net.xml` listed.
+
+### See it visually (optional but very helpful)
+This requires the browser-based desktop mentioned in `CODESPACES.md`. If you set that up:
+```bash
+sumo-gui -n network/intersection.net.xml
+```
+Then switch to the noVNC browser tab (Port 6080 in the Ports panel) to see a small cross-shaped intersection appear.
+
+**If you skipped the GUI setup**, that's fine — you can inspect the file as text instead:
+```bash
+grep "junction id" network/intersection.net.xml
+```
+This prints the ID SUMO gave your intersection (something like `0` or `gneJ0`). **Write this ID down somewhere** — you'll type it into config files repeatedly later.
+
+**Checkpoint:** `intersection.net.xml` exists and you know your junction's ID. ✅
+
+---
+
+## Part 7: Add Fake Traffic (Vehicles) to Your Intersection (15 min)
+
+A road with no cars doesn't teach anything. Let's generate traffic.
+
+```bash
+python3 "$SUMO_HOME/tools/randomTrips.py" -n network/intersection.net.xml -r network/intersection_balanced.rou.xml -e 3600 -p 2 --validate
+```
+
+**What this does:** `randomTrips.py` is a script bundled with SUMO that invents random car journeys through your network. `-e 3600` means "simulate for 3600 seconds (1 hour)". `-p 2` means "roughly one new car appears every 2 seconds." This writes the result to `intersection_balanced.rou.xml` — a "route file" describing every car's start point, end point, and departure time.
+
+Check it exists:
+```bash
+ls network/
+head -20 network/intersection_balanced.rou.xml
+```
+`head -20` just shows you the first 20 lines so you can see it's real XML content describing vehicles, not an empty/broken file.
+
+### Tell SUMO how to combine the map and the traffic
+Create a new file. In the terminal:
+```bash
+cat > network/intersection_balanced.sumocfg << 'EOF'
+<configuration>
+    <input>
+        <net-file value="intersection.net.xml"/>
+        <route-files value="intersection_balanced.rou.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <end value="3600"/>
+    </time>
+</configuration>
+EOF
+```
+**What this does:** `cat > filename << 'EOF' ... EOF` is a way of writing a multi-line file directly from the terminal without opening an editor. This particular file (a `.sumocfg`) tells SUMO "use this map, use this traffic, run for this long."
+
+**Checkpoint:** Run `cat network/intersection_balanced.sumocfg` and confirm it prints the XML content back correctly. ✅ This is now a fully runnable simulation — map + traffic + timing, all linked together.
+
+---
+
+## Part 8: Watch It Run (Sanity Check Before Any AI Code)
+
+We haven't written any AI yet — first, just prove the simulation itself runs correctly end-to-end.
+
+```bash
+timeout 20 sumo -c network/intersection_balanced.sumocfg --no-step-log
+echo "Simulation ran without crashing"
+```
+**What this does:** Runs SUMO headless (no visual window) for 20 seconds, using your config file. If it prints an error instead of the final "Simulation ran without crashing" line, something in Part 6 or 7 needs fixing before you go further.
+
+**Checkpoint:** No error messages, and the final line prints. ✅
+
+At this point, you have a **fully working, if not yet intelligent, traffic simulation.** Everything from here on is about (a) letting Python read/control it via TraCI, and (b) training an AI to control it well. This is genuinely the hardest conceptual jump in the whole project — take a break here if you need one, because Part 9 onward assumes you're fresh.
+
+---
+
+## Part 9: Let Python Watch the Simulation Live (TraCI)
+
+This is your first real "AI-adjacent" code — not learning yet, just *observing*.
+
+Create a file called `test_traci.py`:
+```bash
+cat > test_traci.py << 'EOF'
+import traci
+
+traci.start(["sumo", "-c", "network/intersection_balanced.sumocfg"])
+
+for step in range(50):
+    traci.simulationStep()
+    vehicle_ids = traci.vehicle.getIDList()
+    print(f"Step {step}: {len(vehicle_ids)} cars currently in the simulation")
+
+traci.close()
+EOF
+python3 test_traci.py
+```
+
+**What this does:** `traci.start(...)` launches SUMO in the background and connects Python to it. `traci.simulationStep()` advances the simulation by exactly one second. `traci.vehicle.getIDList()` asks SUMO "which cars exist right now?" — this is the exact same mechanism the AI will later use to "see" the intersection.
+
+**Checkpoint:** You see 50 lines printed, with the car count generally increasing over time (starts near 0, grows as more cars enter). ✅ **This is a major milestone** — Python is now successfully controlling/observing a live simulation. Everything else builds on this one pattern.
+
+---
+
+## Part 10: Understand the AI Concepts Before Coding Them
+
+Before writing the state/action/reward/agent code (which is genuinely the most complex part), make sure these four ideas are clear in plain language:
+
+- **State** = "what the AI sees" at any moment — how many cars are waiting in each lane, how long they've been waiting, which light is currently green. Like a snapshot/dashboard.
+- **Action** = "what the AI can decide" — which direction gets the green light next. Just a choice from a short list of options (e.g., "North-South green" or "East-West green").
+- **Reward** = "the score" the AI gets after each decision — a number that's higher when traffic flows well (short waits) and lower when it doesn't. The AI's entire goal is to maximize its total reward over time.
+- **Training** = the AI tries actions (sometimes randomly, to explore), sees what reward it gets, and gradually learns "in states like this, this action tends to give better rewards" — repeated over thousands of attempts until it gets good.
+
+Everything in Parts 11–14 is just implementing these four ideas in code.
+
+---
+
+## Part 11: Build the "What the AI Sees" Code (State)
+
+```bash
+cat > env/state.py << 'EOF'
+import numpy as np
+import traci
+
+def get_lane_metrics(lane_ids):
+    """For each lane, get: how many cars are stopped, how long they've waited, average speed."""
+    metrics = {}
+    for lane_id in lane_ids:
+        try:
+            metrics[lane_id] = {
+                "queue": traci.lane.getLastStepHaltingNumber(lane_id),
+                "waiting_time": traci.lane.getWaitingTime(lane_id),
+                "mean_speed": traci.lane.getLastStepMeanSpeed(lane_id),
+            }
+        except traci.exceptions.TraCIException:
+            metrics[lane_id] = {"queue": 0.0, "waiting_time": 0.0, "mean_speed": 0.0}
+    return metrics
+
+def build_state_vector(lane_ids, num_phases, current_phase_idx):
+    """Combine everything into one list of numbers the AI can read."""
+    metrics = get_lane_metrics(lane_ids)
+    queue = np.array([metrics[l]["queue"] for l in lane_ids])
+    wait = np.array([metrics[l]["waiting_time"] for l in lane_ids])
+    phase_onehot = np.zeros(num_phases)
+    phase_onehot[current_phase_idx] = 1
+    return np.concatenate([queue, wait, phase_onehot]).astype(np.float32)
+EOF
+```
+
+**What this does:** `get_lane_metrics` asks TraCI, for every lane, "how many cars are stuck, how long have they waited, how fast are they moving." `build_state_vector` mashes all of that into a single flat list of numbers — this list is literally what gets fed into the AI's neural network later. (Note: this is a simplified version of the state — the full cell-grid version from `EXECUTION_PLAN.md` Phase 4 is an upgrade you can add once this simpler version is working.)
+
+### Test it
+```bash
+cat > test_state.py << 'EOF'
+import traci
+from env.state import build_state_vector
+
+traci.start(["sumo", "-c", "network/intersection_balanced.sumocfg"])
+lane_ids = [l for l in traci.lane.getIDList() if not l.startswith(":")]
+
+for _ in range(30):
+    traci.simulationStep()
+
+state = build_state_vector(lane_ids, num_phases=2, current_phase_idx=0)
+print("State vector:", state)
+print("Length of state vector:", len(state))
+traci.close()
+EOF
+python3 test_state.py
+```
+
+**Checkpoint:** Prints a list of numbers with no errors, and the length matches `(2 × num_lanes) + num_phases`. ✅
+
+---
+
+## Part 12: Build the "What the AI Can Decide" Code (Action)
+
+This is the trickiest part conceptually because of a real-world safety rule: **you can't just instantly flip a light from green to red** — real intersections need a yellow warning period, and a brief all-red pause, or cars would crash. The code has to enforce this even though it's just a simulation.
+
+```bash
+cat > env/phase_control.py << 'EOF'
+import traci
+
+class PhaseController:
+    def __init__(self, tls_id, num_phases, min_green=10, yellow_time=3, all_red_time=2):
+        self.tls_id = tls_id
+        self.num_phases = num_phases
+        self.min_green = min_green
+        self.yellow_time = yellow_time
+        self.all_red_time = all_red_time
+        self.current_phase_idx = 0
+        self.time_in_phase = 0
+
+    def apply_action(self, action_idx):
+        """Called once per decision. Advances the simulation by 1 second."""
+        if action_idx == self.current_phase_idx or self.time_in_phase < self.min_green:
+            # Either the AI chose to stay, or it's too early to switch safely
+            traci.simulationStep()
+            self.time_in_phase += 1
+            return
+
+        # Legal switch requested: run yellow, then all-red, then the new green
+        for _ in range(self.yellow_time):
+            traci.simulationStep()
+        for _ in range(self.all_red_time):
+            traci.simulationStep()
+        self.current_phase_idx = action_idx
+        self.time_in_phase = 0
+        traci.simulationStep()
+        self.time_in_phase += 1
+EOF
+```
+
+**What this does:** if the AI asks to switch too early (before `min_green` seconds have passed), the code just ignores it and keeps the current phase going — this protects against the AI flickering the light every second, which would look chaotic and be unsafe in a real intersection. If a switch is legal, it inserts the yellow and all-red safety pause before actually switching. *(Note: this simplified version steps the simulation without literally changing SUMO's traffic light color via `traci.trafficlight.setPhase()` — wiring that in exactly requires matching your specific `tls.add.xml` phase indices, covered in `EXECUTION_PLAN.md` Phase 5/Phase 3. Start with this simplified logic-only version to understand the pattern, then connect it to the real signal.)*
+
+**Checkpoint:** Read through the code once more and make sure you understand *why* the minimum green and yellow/all-red exist — that's the part worth understanding, not just copying. ✅
+
+---
+
+## Part 13: Build the "Score" Code (Reward)
+
+```bash
+cat > env/reward.py << 'EOF'
+class RewardCalculator:
+    def __init__(self, waiting_time_weight=1.0, switch_penalty=0.5, clip_range=(-10, 10)):
+        self.w_wait = waiting_time_weight
+        self.switch_penalty = switch_penalty
+        self.clip_range = clip_range
+
+    def compute(self, prev_waiting, curr_waiting, phase_changed):
+        # Reward is positive when total waiting time went DOWN since last check
+        wait_term = self.w_wait * (prev_waiting - curr_waiting)
+        switch_term = -self.switch_penalty if phase_changed else 0.0
+        raw_reward = wait_term + switch_term
+        reward = max(self.clip_range[0], min(self.clip_range[1], raw_reward))
+        return reward
+EOF
+```
+
+**Test with made-up numbers to build intuition:**
+```bash
+python3 -c "
+from env.reward import RewardCalculator
+rc = RewardCalculator()
+print('Waiting time dropped a lot:', rc.compute(prev_waiting=500, curr_waiting=300, phase_changed=False))
+print('Waiting time went up:', rc.compute(prev_waiting=300, curr_waiting=500, phase_changed=False))
+print('Waiting time dropped but we switched phase:', rc.compute(prev_waiting=500, curr_waiting=300, phase_changed=True))
+"
+```
+**Checkpoint:** The first number should be positive and large, the second negative, the third positive but slightly smaller than the first (because of the switch penalty). If the signs make sense to you, you understand reward shaping. ✅
+
+---
+
+## Part 14: The Big Picture — Wire It All Together
+
+At this point you have three separate working pieces: state, action, reward. The next real coding step is combining them into the full `TrafficSignalEnv` class and the `DQNAgent` — this is exactly what's written out in full, ready-to-copy detail in **`EXECUTION_PLAN.md` Phases 7 and 8** from earlier in this project. You now have enough understanding of *why* each piece exists to follow that code meaningfully instead of just pasting it blindly.
+
+**From here, continue directly into `EXECUTION_PLAN.md` starting at Phase 7** — you've now manually done simplified versions of Phases 1–6 by hand, so you understand what that document's earlier phases were setting up. Phase 7 onward is where the individual pieces (state, action, reward) get assembled into the trainable environment, and the DQN agent gets built and trained on top of it.
+
+---
+
+## Quick Reference: What You've Learned So Far
+
+| Concept | File you built it in | What it does |
+|---|---|---|
+| Traffic map | `network/intersection.net.xml` | The physical roads/lanes |
+| Traffic demand | `network/intersection_balanced.rou.xml` | The fake cars driving through |
+| Simulation config | `network/intersection_balanced.sumocfg` | Links map + traffic + duration |
+| Live observation | `test_traci.py` | Python watching the simulation in real time |
+| State (what AI sees) | `env/state.py` | Converts raw traffic data into numbers |
+| Action (what AI decides) | `env/phase_control.py` | Safely switches the traffic light |
+| Reward (the score) | `env/reward.py` | Tells the AI if it did well or poorly |
+
+## What Comes Next
+1. Combine these into the full `TrafficSignalEnv` (`EXECUTION_PLAN.md` Phase 7).
+2. Build and train the actual DQN neural network (`EXECUTION_PLAN.md` Phase 8–9).
+3. Build the comparison baselines and run the evaluation (`EXECUTION_PLAN.md` Phase 10–12).
+4. Write up your results into the LaTeX paper (`paper.tex`) once you have real numbers.
+
+You don't need to understand deep learning math to get through this — you need to understand what each piece of code is *for*, which is what this guide focused on. The DQN neural network code in `EXECUTION_PLAN.md` Phase 8 is mostly boilerplate you can copy directly; the parts that actually determine whether your project succeeds are the state design, action safety rules, and reward shaping you just built by hand in Parts 11–13.
