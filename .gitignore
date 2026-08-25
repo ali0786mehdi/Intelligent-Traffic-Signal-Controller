@@ -1,0 +1,44 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+traffic-rl-env/
+ENV/
+
+# pytest
+.pytest_cache/
+
+# Model checkpoints
+agent/models/*.pt
+
+# Results generated during experiments
+results/logs/*
+results/plots/*
+!results/logs/.gitkeep
+!results/plots/.gitkeep
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env

@@ -1,0 +1,35 @@
+# Intelligent Traffic Signal Controller — Configuration
+# All values below are from the project's Design.md specification.
+# This is a PLACEHOLDER — the system is not yet implemented.
+
+env:
+  sumocfg_scenarios:
+    balanced: network/intersection_balanced.sumocfg
+    asymmetric: network/intersection_asymmetric.sumocfg
+    surge: network/intersection_surge.sumocfg
+  min_green: 10           # seconds — minimum green phase duration before switch allowed
+  yellow_time: 3          # seconds — yellow clearance interval on phase change
+  all_red_time: 2         # seconds — all-red clearance after yellow, before new green
+  decision_interval: 5    # seconds — how often the agent makes a decision
+
+reward:
+  waiting_time_weight: 1.0
+  switch_penalty: 0.5
+  queue_weight: 0.1
+  clip_range: [-10, 10]
+
+agent:
+  hidden_sizes: [128, 128]
+  learning_rate: 0.0005
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_steps: 20000
+  replay_capacity: 50000
+  batch_size: 64
+  target_update_freq: 500
+
+training:
+  num_episodes: 300
+  max_steps_per_episode: 720
+  seed: null              # auto-generated and logged if null

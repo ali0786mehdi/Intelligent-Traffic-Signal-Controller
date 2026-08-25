@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python bytecode
+__pycache__
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv
+traffic-rl-env
+
+# IDE
+.vscode
+.idea
+
+# Results and model checkpoints (rebuilt inside container)
+results/logs/*
+results/plots/*
+agent/models/*.pt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in image)
+*.md
+!README.md
