@@ -169,8 +169,6 @@ Train on asymmetric and rush-hour scenarios. Tune reward weights, learning rate,
 **Week 6 — Evaluation and report**
 Run all three controllers (static, actuated, DQN) across multiple seeds on all scenarios. Generate comparison plots and tables. Write up problem framing, methodology, results, and limitations/future work (mention multi-intersection scaling here).
 
-Ali is gay as well 🌈
-
 ---
 
 ## 5. What Will Make This Project Stand Out (for grading)
