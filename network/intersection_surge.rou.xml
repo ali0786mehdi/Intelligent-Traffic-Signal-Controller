@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Surge demand scenario
+    Phase 1 (0–1800 s)   : ~200 veh/hr baseline, all directions roughly equal
+    Phase 2 (1800–3600 s): N->S surges to ~800 veh/hr (rush-hour spike)
+                           Other directions remain at baseline
+
+    This tests the agent's ability to adapt to sudden demand changes —
+    the scenario where fixed-time control visibly fails.
+
+    Phase 1 per-arm breakdown (~200 veh/hr):
+      Through : 90 veh/hr
+      Right   : 55 veh/hr
+      Left    : 55 veh/hr
+
+    Phase 2 — only N_S changes (800 veh/hr straight-through surge).
+    All other flows continue at their Phase 1 rates.
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+
+    <!-- ================================================================
+         VEHICLE TYPE
+         ================================================================ -->
+    <vType id="passenger"
+           accel="2.6"
+           decel="4.5"
+           length="5.0"
+           maxSpeed="13.89"
+           sigma="0.5"
+           tau="1.0"
+           minGap="2.5"
+           color="1,0.5,0"/>
+
+    <!-- ================================================================
+         ROUTES
+         ================================================================ -->
+    <route id="r_N_S" edges="N_in S_out"/>
+    <route id="r_N_E" edges="N_in E_out"/>
+    <route id="r_N_W" edges="N_in W_out"/>
+
+    <route id="r_S_N" edges="S_in N_out"/>
+    <route id="r_S_E" edges="S_in E_out"/>
+    <route id="r_S_W" edges="S_in W_out"/>
+
+    <route id="r_E_W" edges="E_in W_out"/>
+    <route id="r_E_N" edges="E_in N_out"/>
+    <route id="r_E_S" edges="E_in S_out"/>
+
+    <route id="r_W_E" edges="W_in E_out"/>
+    <route id="r_W_N" edges="W_in N_out"/>
+    <route id="r_W_S" edges="W_in S_out"/>
+
+    <!-- ================================================================
+         PHASE 1 FLOWS  (0 – 1800 s)  baseline ~200 veh/hr per arm
+         ================================================================ -->
+
+    <!-- From NORTH — baseline -->
+    <flow id="f_N_S_p1" type="passenger" route="r_N_S" begin="0"    end="1800" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_N_E_p1" type="passenger" route="r_N_E" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_N_W_p1" type="passenger" route="r_N_W" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From SOUTH — baseline -->
+    <flow id="f_S_N_p1" type="passenger" route="r_S_N" begin="0"    end="1800" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_S_E_p1" type="passenger" route="r_S_E" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_S_W_p1" type="passenger" route="r_S_W" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From EAST — baseline -->
+    <flow id="f_E_W_p1" type="passenger" route="r_E_W" begin="0"    end="1800" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_E_N_p1" type="passenger" route="r_E_N" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_E_S_p1" type="passenger" route="r_E_S" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From WEST — baseline -->
+    <flow id="f_W_E_p1" type="passenger" route="r_W_E" begin="0"    end="1800" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_W_N_p1" type="passenger" route="r_W_N" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_W_S_p1" type="passenger" route="r_W_S" begin="0"    end="1800" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- ================================================================
+         PHASE 2 FLOWS  (1800 – 3600 s)  N->S surge, others at baseline
+         ================================================================ -->
+
+    <!-- N->S SURGE: 800 veh/hr (the key demand spike) -->
+    <flow id="f_N_S_p2" type="passenger" route="r_N_S" begin="1800" end="3600" vehsPerHour="800" departLane="best" departSpeed="max"/>
+
+    <!-- N turns remain at baseline during surge -->
+    <flow id="f_N_E_p2" type="passenger" route="r_N_E" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_N_W_p2" type="passenger" route="r_N_W" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From SOUTH — maintain baseline during surge period -->
+    <flow id="f_S_N_p2" type="passenger" route="r_S_N" begin="1800" end="3600" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_S_E_p2" type="passenger" route="r_S_E" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_S_W_p2" type="passenger" route="r_S_W" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From EAST — maintain baseline during surge period -->
+    <flow id="f_E_W_p2" type="passenger" route="r_E_W" begin="1800" end="3600" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_E_N_p2" type="passenger" route="r_E_N" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_E_S_p2" type="passenger" route="r_E_S" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+    <!-- From WEST — maintain baseline during surge period -->
+    <flow id="f_W_E_p2" type="passenger" route="r_W_E" begin="1800" end="3600" vehsPerHour="90"  departLane="best" departSpeed="max"/>
+    <flow id="f_W_N_p2" type="passenger" route="r_W_N" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+    <flow id="f_W_S_p2" type="passenger" route="r_W_S" begin="1800" end="3600" vehsPerHour="55"  departLane="best" departSpeed="max"/>
+
+</routes>

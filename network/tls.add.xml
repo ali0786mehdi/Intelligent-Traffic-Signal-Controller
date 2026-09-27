@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Additional file: Traffic Light Signal programs
+    Junction / TLS ID : center
+
+    Two programs defined here. The simulation will load the FIRST one
+    (static) by default. To switch at runtime via TraCI use:
+        traci.trafficlight.setProgram("center", "actuated")
+
+    ================================================================
+    16-character phase state string layout
+    (matches link indices in intersection.net.xml):
+
+    Position  0 : N_in lane0 -> S_out  (NS through, lane 0)
+    Position  1 : N_in lane0 -> W_out  (NS right turn, lane 0)
+    Position  2 : N_in lane1 -> S_out  (NS through, lane 1)
+    Position  3 : N_in lane1 -> E_out  (NS left turn, lane 1)
+    Position  4 : S_in lane0 -> N_out  (NS through, lane 0)
+    Position  5 : S_in lane0 -> E_out  (NS right turn, lane 0)
+    Position  6 : S_in lane1 -> N_out  (NS through, lane 1)
+    Position  7 : S_in lane1 -> W_out  (NS left turn, lane 1)
+    Position  8 : E_in lane0 -> W_out  (EW through, lane 0)
+    Position  9 : E_in lane0 -> N_out  (EW right turn, lane 0)
+    Position 10 : E_in lane1 -> W_out  (EW through, lane 1)
+    Position 11 : E_in lane1 -> S_out  (EW left turn, lane 1)
+    Position 12 : W_in lane0 -> E_out  (EW through, lane 0)
+    Position 13 : W_in lane0 -> S_out  (EW right turn, lane 0)
+    Position 14 : W_in lane1 -> E_out  (EW through, lane 1)
+    Position 15 : W_in lane1 -> N_out  (EW left turn, lane 1)
+
+    State key:
+      G = green  (priority green — has right of way)
+      g = green  (permissive green — yields to priority movements)
+      y = yellow (must stop if safe to do so)
+      r = red
+
+    Phase groupings:
+      NS green  [0-7]  = GgGgGgGg  EW red  [8-15] = rrrrrrrr
+      NS yellow [0-7]  = yyyyyyyy  EW red  [8-15] = rrrrrrrr
+      All red          = rrrrrrrrrrrrrrrr
+      EW green  [0-7]  = rrrrrrrr  EW [8-15] = GgGgGgGg
+      EW yellow [0-7]  = rrrrrrrr  EW [8-15] = yyyyyyyy
+    ================================================================
+-->
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+
+    <!-- ============================================================
+         PROGRAM 1: static  (fixed-time, baseline / comparison)
+         Total cycle = 35 + 3 + 2 + 35 + 3 + 2 = 80 s
+         ============================================================ -->
+    <tlLogic id="center" type="static" programID="static" offset="0">
+
+        <!-- Phase 0 : NS green — straight + permissive turns, 35 s -->
+        <phase duration="35" state="GgGgGgGgrrrrrrrr"
+               name="NS_green"/>
+
+        <!-- Phase 1 : NS yellow — clearance, 3 s -->
+        <phase duration="3"  state="yyyyyyyyrrrrrrrr"
+               name="NS_yellow"/>
+
+        <!-- Phase 2 : All red — inter-green clearance, 2 s -->
+        <phase duration="2"  state="rrrrrrrrrrrrrrrr"
+               name="all_red_1"/>
+
+        <!-- Phase 3 : EW green — straight + permissive turns, 35 s -->
+        <phase duration="35" state="rrrrrrrrGgGgGgGg"
+               name="EW_green"/>
+
+        <!-- Phase 4 : EW yellow — clearance, 3 s -->
+        <phase duration="3"  state="rrrrrrrryyyyyyyy"
+               name="EW_yellow"/>
+
+        <!-- Phase 5 : All red — inter-green clearance, 2 s -->
+        <phase duration="2"  state="rrrrrrrrrrrrrrrr"
+               name="all_red_2"/>
+
+    </tlLogic>
+
+    <!-- ============================================================
+         PROGRAM 2: actuated  (gap-based adaptive, strong baseline)
+         Green phases extend while vehicles keep arriving, up to maxDur.
+         Minimum green prevents starvation.
+         Total min cycle = 10+3+2+10+3+2 = 30 s
+         Total max cycle = 60+3+2+60+3+2 = 130 s
+
+         SUMO actuated logic uses induction loops on each incoming lane.
+         maxGap  : if no vehicle detected within this gap (s), phase ends
+         detector-gap : how far back from stop-line the virtual detector is
+         ============================================================ -->
+    <tlLogic id="center" type="actuated" programID="actuated" offset="0">
+
+        <param key="max-gap" value="3.0"/>
+        <param key="detector-gap" value="2.0"/>
+        <param key="show-detectors" value="false"/>
+
+        <!-- Phase 0 : NS green — extends while vehicles arrive -->
+        <phase duration="35" minDur="10" maxDur="60"
+               state="GgGgGgGgrrrrrrrr"
+               name="NS_green"/>
+
+        <!-- Phase 1 : NS yellow — fixed, non-extendable -->
+        <phase duration="3"  minDur="3"  maxDur="3"
+               state="yyyyyyyyrrrrrrrr"
+               name="NS_yellow"/>
+
+        <!-- Phase 2 : All red clearance — fixed -->
+        <phase duration="2"  minDur="2"  maxDur="2"
+               state="rrrrrrrrrrrrrrrr"
+               name="all_red_1"/>
+
+        <!-- Phase 3 : EW green — extends while vehicles arrive -->
+        <phase duration="35" minDur="10" maxDur="60"
+               state="rrrrrrrrGgGgGgGg"
+               name="EW_green"/>
+
+        <!-- Phase 4 : EW yellow — fixed, non-extendable -->
+        <phase duration="3"  minDur="3"  maxDur="3"
+               state="rrrrrrrryyyyyyyy"
+               name="EW_yellow"/>
+
+        <!-- Phase 5 : All red clearance — fixed -->
+        <phase duration="2"  minDur="2"  maxDur="2"
+               state="rrrrrrrrrrrrrrrr"
+               name="all_red_2"/>
+
+    </tlLogic>
+
+</additional>

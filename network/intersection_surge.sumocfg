@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SUMO configuration — Surge demand scenario
+    Network  : intersection.net.xml
+    Demand   : intersection_surge.rou.xml  (baseline 0-1800s, N->S surge 1800-3600s)
+    Duration : 3600 simulated seconds
+    Mode     : headless (no GUI)
+-->
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file         value="intersection.net.xml"/>
+        <route-files      value="intersection_surge.rou.xml"/>
+        <additional-files value="tls.add.xml"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end   value="3600"/>
+        <step-length value="1"/>
+    </time>
+
+    <processing>
+        <time-to-teleport value="300"/>
+        <collision.action value="warn"/>
+        <max-depart-delay value="300"/>
+    </processing>
+
+    <report>
+        <verbose value="false"/>
+        <no-step-log value="true"/>
+        <no-warnings value="false"/>
+    </report>
+
+</configuration>
