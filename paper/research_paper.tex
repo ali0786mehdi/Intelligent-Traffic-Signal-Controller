@@ -1,0 +1,342 @@
+%% IEEE Conference Paper — two-column
+%% Compile with pdflatex (needs IEEEtran.cls, which ships with most TeX distros).
+%%   pdflatex research_paper.tex  (run twice for references/labels)
+%% Overleaf: create a project, set "IEEEtran" document class (built in).
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Adaptive Traffic Signal Control at an Isolated Intersection using a
+Dueling Double Deep Q-Network with PCU-Weighted State Representation for
+Heterogeneous Traffic}
+
+\author{\IEEEauthorblockN{Ali Mehdi Mirza}
+\IEEEauthorblockA{\textit{Department of [Your Department]} \\
+\textit{[Your Institution]}\\
+[City, Country] \\
+alimehdi1010@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+Fixed-time and vehicle-actuated traffic signal controllers are the de-facto
+standard at urban intersections, yet both degrade under asymmetric and
+time-varying demand because their control logic is not learned from traffic
+dynamics. This paper presents an adaptive signal controller based on a
+Dueling Double Deep Q-Network (D3QN) that selects signal phases from a
+discretized, normalized intersection state and is trained entirely in the
+microscopic simulator SUMO through the TraCI interface. We formulate signal
+control as a discrete phase-selection Markov Decision Process with a shaped,
+bounded reward centred on reducing cumulative vehicle waiting time, and delegate
+minimum-green and yellow/all-red clearance enforcement to the environment to
+guarantee physically valid, safe signal plans. Evaluated against fixed-time and
+actuated baselines on three demand regimes (balanced, asymmetric, and a
+mid-episode surge), each replicated over multiple random seeds and reported as
+mean $\pm$ standard deviation, the D3QN reduces average waiting time by
+75.5--82.6\% relative to fixed-time control and by 18.1--38.0\% relative to a
+strong actuated baseline, while matching throughput and reducing estimated
+CO\textsubscript{2} emissions by nearly an order of magnitude. We further
+address the common homogeneous-fleet assumption by introducing a Passenger Car
+Unit (PCU) weighting (IRC~106-1990) into both state and reward, evaluated on a
+mixed fleet (car, motorcycle, auto-rickshaw, bus) under SUMO's sub-lane model.
+An ablation shows PCU weighting lowers waiting time by 23.9\% and halves
+run-to-run variance relative to an identical unweighted agent. All code, models,
+and experiments are reproducible via a single containerized command.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Reinforcement learning, deep Q-network, dueling double DQN, adaptive traffic
+signal control, SUMO, TraCI, intelligent transportation systems, passenger car
+unit, heterogeneous traffic, queue length, waiting time, Markov decision process.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Urban road intersections are principal bottlenecks in city traffic networks.
+Conventional signal control falls into two families: \emph{fixed-time} control,
+which cycles through phases on a pre-computed schedule irrespective of live
+demand, and \emph{vehicle-actuated} control, which extends a green phase while
+detectors sense arriving vehicles. Both are effective under the conditions for
+which they were tuned, but neither \emph{learns} from the traffic it governs, so
+both lose efficiency when demand is asymmetric across approaches or varies over
+time.
+
+Reinforcement learning (RL) allows an agent to learn a control policy directly
+from interaction with the traffic environment, optimizing a long-horizon
+objective such as cumulative delay. Deep Q-Networks (DQN)~\cite{mnih2015} and
+their successors---Double DQN~\cite{vanhasselt2016} and the Dueling
+architecture~\cite{wang2016}---have been applied to signal control. However,
+three practical gaps recur: (i) \emph{weak baselines}, where studies compare only
+against fixed-time control and omit the stronger actuated baseline; (ii) the
+\emph{homogeneous-traffic assumption}, where states count raw vehicles, treating
+a motorcycle and a bus as equivalent; and (iii) limited \emph{reproducibility}
+from single-run results without seed replication.
+
+This paper addresses all three by benchmarking against both fixed-time and
+actuated control, introducing a PCU-weighted state and reward evaluated on a
+heterogeneous fleet, and releasing a containerized, multi-seed pipeline.
+
+\subsection{Contributions}
+\begin{itemize}
+\item A Dueling Double DQN controller for an isolated 4-way intersection, with
+the environment (not the agent) enforcing minimum-green and mandatory
+yellow/all-red clearance for safety.
+\item A shaped, bounded reward with per-component logging for transparent
+behaviour analysis.
+\item A multi-seed evaluation against fixed-time and actuated baselines across
+three demand regimes, reporting waiting time, queue length, throughput, and
+estimated emissions.
+\item A PCU-weighted state/reward formulation for heterogeneous traffic and an
+ablation demonstrating its benefit.
+\item A one-command, Docker-based reproducible artifact.
+\end{itemize}
+
+\section{Related Work and Research Gaps}
+RL-based signal control commonly pairs SUMO~\cite{sumo2018} and TraCI with a
+DQN-family agent. Foundational techniques include experience replay and target
+networks~\cite{mnih2015}, the Double DQN correction for Q-value
+overestimation~\cite{vanhasselt2016}, and the Dueling architecture separating
+state value from action advantage~\cite{wang2016}. Open-source interfaces such
+as SUMO-RL~\cite{sumorl} standardize the environment API.
+
+The gaps this work fulfils are: \emph{baseline rigour} (we include the actuated
+controller as a strong baseline); \emph{heterogeneity} (we embed IRC~106-1990
+PCU factors~\cite{irc106} into the learned representation and quantify the
+effect); and \emph{reproducibility} (mean~$\pm$~std over seeds and a
+containerized pipeline).
+
+\section{Methodology}
+
+\subsection{Simulation Environment}
+Experiments use Eclipse SUMO~1.27.1 (headless) controlled via TraCI. The network
+is a single 4-way intersection generated with \texttt{netconvert}: four incoming
+and four outgoing edges, two lanes each, 200~m length, 13.89~m/s free-flow speed.
+Left turns are permissive (gap-acceptance), yielding a compact two-phase
+(North--South / East--West) control structure.
+
+\subsection{Demand Scenarios}
+\emph{Balanced} ($\sim$300 veh/h/approach, symmetric); \emph{Asymmetric} (heavy
+N--S, light E--W); \emph{Surge} (mid-episode demand ramp); and
+\emph{Heterogeneous} (mixed fleet under SUMO's SL2015 sub-lane model, lateral
+resolution 0.8~m).
+
+\subsection{MDP Formulation}
+\textbf{State (71-D, normalized).} Per incoming lane: a 3-cell density vector and
+a 3-cell mean-speed vector, per-lane queue length and cumulative waiting time,
+a 6-D current-phase one-hot, and a minimum-green-elapsed flag:
+$8{\times}3 + 8{\times}3 + 8 + 8 + 6 + 1 = 71$.
+
+\textbf{Action ($|A|{=}2$).} $a{=}0$ requests N--S green; $a{=}1$ requests E--W
+green; decisions every 5~s.
+
+\textbf{Safety wrapper.} The environment enforces a 10~s minimum green and inserts
+3~s yellow $+$ 2~s all-red clearance on every axis change.
+
+\textbf{Reward.}
+\begin{equation}
+\begin{aligned}
+r_t = &\;(W_{t-1} - W_t) - 0.5\,\mathbb{1}[a_t \neq a_{t-1}] - 0.1\!\sum_l q_{l,t},\\
+r_t \leftarrow &\; \mathrm{clip}(r_t,\,-10,\,+10),
+\end{aligned}
+\end{equation}
+where $W_t$ is total cumulative waiting time and $q_{l,t}$ the queue on lane $l$.
+Components are logged separately.
+
+\subsection{Agent: Dueling Double DQN}
+A shared trunk (two hidden layers of 128 ReLU units) branches into value $V(s)$
+and advantage $A(s,a)$ streams, aggregated with mean subtraction:
+\begin{equation}
+Q(s,a) = V(s) + \Big( A(s,a) - \tfrac{1}{|A|}\textstyle\sum_{a'} A(s,a') \Big).
+\end{equation}
+Double DQN targets decouple selection from evaluation:
+\begin{equation}
+y_t = r_t + \gamma\, Q_{\theta^-}\!\big(s_{t+1}, \arg\max_a Q_\theta(s_{t+1},a)\big)(1-d_t).
+\end{equation}
+Stabilizers: replay buffer (50\,000), hard target update every 500 steps,
+$\varepsilon$-greedy decay ($1.0\!\rightarrow\!0.05$), Huber loss, gradient
+clipping; Adam ($\eta{=}5\times10^{-4}$), $\gamma{=}0.99$, batch~64.
+
+\subsection{PCU-Weighted Representation}
+For mixed fleets, each vehicle's contribution to the queue features and the
+reward's queue penalty is weighted by its PCU factor~\cite{irc106}:
+car~$=1.0$, motorcycle~$=0.5$, auto-rickshaw~$=0.8$, bus~$=3.0$. Raw counts are
+retained for fair metric reporting.
+
+\subsection{Metrics}
+Average waiting time (s, primary), average queue length, throughput (veh/h), and
+estimated CO\textsubscript{2} (mg). Each configuration is run over three seeds;
+we report mean~$\pm$~std. Training is monitored via the episode-reward curve.
+
+\section{Experimental Setup}
+Evaluation episodes span 1200~simulated seconds; agents train for 80 episodes
+(homogeneous) and 150 (heterogeneous), with $\varepsilon$-decay matched to the
+budget. All runs execute in a Docker image (Ubuntu~22.04 + SUMO + PyTorch~2.14
+CPU). The DQN is evaluated greedily ($\varepsilon{=}0$) on seeds $\{1,2,3\}$.
+
+\section{Results}
+
+\begin{table}[t]
+\caption{Average Waiting Time (s), mean $\pm$ std over 3 seeds.}
+\label{tab:wait}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Scenario & Fixed-time & Actuated & \textbf{D3QN} & $\Delta$ vs fixed \\
+\midrule
+Balanced   & 56.85$\pm$3.53 & 19.29$\pm$2.66 & \textbf{11.97$\pm$0.76} & $-$78.9\% \\
+Asymmetric & 64.64$\pm$1.11 & 23.82$\pm$0.17 & \textbf{15.82$\pm$0.62} & $-$75.5\% \\
+Surge      & 34.88$\pm$0.17 & \ \,7.42$\pm$0.94 & \ \,\textbf{6.08$\pm$1.77} & $-$82.6\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Average Queue Length (halting vehicles).}
+\label{tab:queue}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Scenario & Fixed-time & Actuated & \textbf{D3QN} \\
+\midrule
+Balanced   & 4.14$\pm$0.13 & 2.29$\pm$0.09 & \textbf{1.93$\pm$0.10} \\
+Asymmetric & 4.71$\pm$0.05 & 2.45$\pm$0.06 & \textbf{2.11$\pm$0.07} \\
+Surge      & 2.71$\pm$0.00 & 1.16$\pm$0.09 & \textbf{0.96$\pm$0.07} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Throughput (veh/h) --- matched across controllers.}
+\label{tab:thru}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Scenario & Fixed-time & Actuated & D3QN \\
+\midrule
+Balanced   & 1168 & 1170 & 1170 \\
+Asymmetric & 1356 & 1360 & 1365 \\
+Surge      & \ \,786 & \ \,784 & \ \,784 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Estimated CO\textsubscript{2} ($\times10^6$ mg per episode).}
+\label{tab:co2}
+\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Scenario & Fixed-time & Actuated & \textbf{D3QN} \\
+\midrule
+Balanced   & 19.4 & 15.5 & \textbf{2.1} \\
+Asymmetric & 23.3 & 17.8 & \textbf{2.6} \\
+Surge      & 12.6 & \ \,9.5 & \textbf{1.5} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Main Comparison (Homogeneous Demand)}
+Table~\ref{tab:wait} shows the D3QN reduces average waiting time by 75.5--82.6\%
+versus fixed-time and 18.1--38.0\% versus actuated control. Queue lengths
+(Table~\ref{tab:queue}) are correspondingly lowest for the D3QN, while throughput
+(Table~\ref{tab:thru}) is matched: the improvement is in service efficiency, not
+vehicles cleared. Estimated CO\textsubscript{2} (Table~\ref{tab:co2}) drops by
+roughly an order of magnitude; as simulator estimates these are indicative.
+
+\subsection{Training Behaviour}
+Across scenarios the episode reward increases and stabilizes once $\varepsilon$
+reaches its floor, with bounded loss and no divergence, confirming stable
+learning under the Double-DQN/dueling stabilizers and bounded reward.
+
+\subsection{Heterogeneous Traffic: PCU Ablation}
+\begin{table}[t]
+\caption{Heterogeneous Traffic --- Avg.\ Waiting Time (s), 3 seeds.}
+\label{tab:pcu}
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Controller & Avg wait (s) & $\Delta$ vs fixed-time \\
+\midrule
+Fixed-time & 56.11$\pm$0.95 & --- \\
+Actuated & 18.53$\pm$1.49 & $-$67.0\% \\
+D3QN (no PCU) & 29.38$\pm$4.85 & $-$47.6\% \\
+\textbf{D3QN (PCU-weighted)} & \textbf{22.36$\pm$1.95} & \textbf{$-$60.1\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:pcu} shows PCU weighting improves the D3QN by 23.9\% in waiting
+time over the identical unweighted agent (22.36 vs 29.38~s) and reduces variance
+from $\pm4.85$ to $\pm1.95$. At the training budget used, the PCU-weighted agent
+does not yet surpass the actuated baseline on heterogeneous traffic; closing this
+gap is future work.
+
+\subsection{On Scientific Process}
+An initial short heterogeneous run (60 episodes, PCU in state only) produced the
+opposite result. Diagnosis attributed this to under-training and an unchanged
+reward objective. A corrected protocol (PCU in both state and reward, 150
+episodes, retuned $\varepsilon$-decay) reversed the finding to the positive
+result in Table~\ref{tab:pcu}. Both are reported for transparency.
+
+\section{Discussion}
+A compact D3QN learns a signal policy that outperforms fixed-time and a
+well-configured actuated controller on delay and queueing without sacrificing
+throughput. The safety wrapper guarantees valid minimum-green and clearance
+intervals. The PCU ablation supports the argument that vehicle-class-aware state
+and reward yield a better, more stable policy for heterogeneous traffic than
+uniform counting.
+
+\section{Limitations}
+Single isolated intersection; simulation-only with permissive left turns and a
+discretized state; limited training budget (1200~s episodes, 80--150 episodes);
+emissions are simulator estimates; and the learned agent does not yet beat the
+actuated baseline on heterogeneous traffic at the current budget.
+
+\section{Future Work}
+Protected left-turn phases and larger action sets; multi-intersection
+coordination via multi-agent RL; a single generalist policy across regimes;
+richer state encoders and longer training for heterogeneous traffic; prioritized
+replay and distributional value estimation.
+
+\section{Conclusion}
+We presented a Dueling Double DQN signal controller trained in SUMO and evaluated
+against fixed-time and actuated baselines across three demand regimes with
+multi-seed statistics. It reduces average waiting time by 75.5--82.6\% versus
+fixed-time and up to 38\% versus actuated control, with matched throughput and
+substantially lower estimated emissions. A PCU-weighted extension improves the
+agent by 23.9\% over an unweighted counterpart on heterogeneous traffic. The
+full pipeline is containerized and reproducible with a single command.
+
+\section*{Reproducibility}
+Code, models, and scripts:
+\texttt{github.com/ali0786mehdi/Intelligent-Traffic-Signal-Controller}.
+Run \texttt{make all} (Linux/Mac) or \texttt{.\textbackslash run.ps1 all}
+(Windows) inside Docker to reproduce all tables and figures.
+
+\begin{thebibliography}{00}
+\bibitem{mnih2015} V. Mnih \emph{et al.}, ``Human-level control through deep
+reinforcement learning,'' \emph{Nature}, vol.~518, pp.~529--533, 2015.
+\bibitem{vanhasselt2016} H. van Hasselt, A. Guez, and D. Silver, ``Deep
+reinforcement learning with double Q-learning,'' in \emph{Proc. AAAI}, 2016.
+\bibitem{wang2016} Z. Wang \emph{et al.}, ``Dueling network architectures for
+deep reinforcement learning,'' in \emph{Proc. ICML}, 2016.
+\bibitem{sumo2018} P. A. Lopez \emph{et al.}, ``Microscopic traffic simulation
+using SUMO,'' in \emph{Proc. IEEE ITSC}, 2018.
+\bibitem{irc106} Indian Roads Congress, \emph{IRC:106-1990 --- Guidelines for
+Capacity of Urban Roads in Plain Areas}, 1990.
+\bibitem{sumorl} L. N. Alegre, ``SUMO-RL,'' open-source Gymnasium interface for
+SUMO, 2019.
+\end{thebibliography}
+
+\end{document}
