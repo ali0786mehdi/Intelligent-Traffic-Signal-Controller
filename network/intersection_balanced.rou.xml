@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Balanced demand scenario
+    ~300 vehicles/hour per direction, all 4 arms, 3600 s episode
+    12 flows total (each arm → each other arm)
+    vehsPerHour distributed: 300 veh/hr straight + turns combined per arm
+
+    Per-flow breakdown (12 flows across 4 origins × 3 destinations):
+      Through (straight)  : 140 veh/hr
+      Right turn          :  80 veh/hr
+      Left turn           :  80 veh/hr
+      Total per arm       : 300 veh/hr
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+
+    <!-- ================================================================
+         VEHICLE TYPE
+         ================================================================ -->
+    <vType id="passenger"
+           accel="2.6"
+           decel="4.5"
+           length="5.0"
+           maxSpeed="13.89"
+           sigma="0.5"
+           tau="1.0"
+           minGap="2.5"
+           color="1,0.5,0"/>
+
+    <!-- ================================================================
+         ROUTES  (edge sequences: incoming_edge outgoing_edge)
+         ================================================================ -->
+    <route id="r_N_S" edges="N_in S_out"/>
+    <route id="r_N_E" edges="N_in E_out"/>
+    <route id="r_N_W" edges="N_in W_out"/>
+
+    <route id="r_S_N" edges="S_in N_out"/>
+    <route id="r_S_E" edges="S_in E_out"/>
+    <route id="r_S_W" edges="S_in W_out"/>
+
+    <route id="r_E_W" edges="E_in W_out"/>
+    <route id="r_E_N" edges="E_in N_out"/>
+    <route id="r_E_S" edges="E_in S_out"/>
+
+    <route id="r_W_E" edges="W_in E_out"/>
+    <route id="r_W_N" edges="W_in N_out"/>
+    <route id="r_W_S" edges="W_in S_out"/>
+
+    <!-- ================================================================
+         FLOWS — balanced ~300 veh/hr per arm (begin=0 end=3600)
+         ================================================================ -->
+
+    <!-- From NORTH -->
+    <flow id="f_N_S" type="passenger" route="r_N_S" begin="0" end="3600" vehsPerHour="140" departLane="best" departSpeed="max"/>
+    <flow id="f_N_E" type="passenger" route="r_N_E" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+    <flow id="f_N_W" type="passenger" route="r_N_W" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+
+    <!-- From SOUTH -->
+    <flow id="f_S_N" type="passenger" route="r_S_N" begin="0" end="3600" vehsPerHour="140" departLane="best" departSpeed="max"/>
+    <flow id="f_S_E" type="passenger" route="r_S_E" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+    <flow id="f_S_W" type="passenger" route="r_S_W" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+
+    <!-- From EAST -->
+    <flow id="f_E_W" type="passenger" route="r_E_W" begin="0" end="3600" vehsPerHour="140" departLane="best" departSpeed="max"/>
+    <flow id="f_E_N" type="passenger" route="r_E_N" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+    <flow id="f_E_S" type="passenger" route="r_E_S" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+
+    <!-- From WEST -->
+    <flow id="f_W_E" type="passenger" route="r_W_E" begin="0" end="3600" vehsPerHour="140" departLane="best" departSpeed="max"/>
+    <flow id="f_W_N" type="passenger" route="r_W_N" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+    <flow id="f_W_S" type="passenger" route="r_W_S" begin="0" end="3600" vehsPerHour="80"  departLane="best" departSpeed="max"/>
+
+</routes>

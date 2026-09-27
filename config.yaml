@@ -7,6 +7,7 @@ env:
     balanced: network/intersection_balanced.sumocfg
     asymmetric: network/intersection_asymmetric.sumocfg
     surge: network/intersection_surge.sumocfg
+    hetero: network/intersection_hetero.sumocfg
   min_green: 10           # seconds — minimum green phase duration before switch allowed
   yellow_time: 3          # seconds — yellow clearance interval on phase change
   all_red_time: 2         # seconds — all-red clearance after yellow, before new green
@@ -24,10 +25,12 @@ agent:
   gamma: 0.99
   epsilon_start: 1.0
   epsilon_end: 0.05
-  epsilon_decay_steps: 20000
+  epsilon_decay_steps: 3500   # tuned to match ~95 steps/episode; agent reaches eps_end by ~ep40 and learns a beating-baseline policy
   replay_capacity: 50000
   batch_size: 64
   target_update_freq: 500
+  tau: 0.0                 # >0 enables Polyak soft target update; 0 = hard copy every target_update_freq
+  double_dqn: true         # D3QN: Double DQN target computation (dueling network is always on)
 
 training:
   num_episodes: 300

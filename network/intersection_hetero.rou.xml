@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Heterogeneous demand scenario (Phase 7).
+    Mixed vehicle fleet with realistic dimensions, for the SL2015 sublane model.
+
+    Fleet mix (~ Indian-urban-like):  car 50%, motorcycle 30%, auto 15%, bus 5%
+    PCU factors (IRC 106-1990) are applied in the env state, NOT here:
+        car = 1.0, motorcycle = 0.5, auto-rickshaw = 0.8, bus = 3.0
+
+    vType dimensions (length x width, m):
+        car        : 5.0 x 1.8
+        motorcycle : 2.2 x 0.9   (lateral filtering enabled)
+        auto       : 2.8 x 1.4
+        bus        : 12.0 x 2.5
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+
+    <vType id="car"        vClass="passenger"  accel="2.6" decel="4.5" length="5.0"  width="1.8" maxSpeed="13.89" sigma="0.5" minGap="2.5" latAlignment="center" color="1,0.5,0"/>
+    <vType id="motorcycle" vClass="motorcycle" accel="3.0" decel="6.0" length="2.2"  width="0.9" maxSpeed="16.67" sigma="0.7" minGap="1.0" latAlignment="right"  color="0,1,1"/>
+    <vType id="auto"       vClass="taxi"       accel="2.0" decel="4.0" length="2.8"  width="1.4" maxSpeed="11.11" sigma="0.6" minGap="1.5" latAlignment="center" color="1,1,0"/>
+    <vType id="bus"        vClass="bus"        accel="1.2" decel="4.0" length="12.0" width="2.5" maxSpeed="11.11" sigma="0.4" minGap="3.0" latAlignment="center" color="1,0,0"/>
+
+    <!-- Routes: incoming_edge outgoing_edge -->
+    <route id="r_N_S" edges="N_in S_out"/>
+    <route id="r_N_E" edges="N_in E_out"/>
+    <route id="r_N_W" edges="N_in W_out"/>
+    <route id="r_S_N" edges="S_in N_out"/>
+    <route id="r_S_E" edges="S_in E_out"/>
+    <route id="r_S_W" edges="S_in W_out"/>
+    <route id="r_E_W" edges="E_in W_out"/>
+    <route id="r_E_N" edges="E_in N_out"/>
+    <route id="r_E_S" edges="E_in S_out"/>
+    <route id="r_W_E" edges="W_in E_out"/>
+    <route id="r_W_N" edges="W_in N_out"/>
+    <route id="r_W_S" edges="W_in S_out"/>
+
+    <!-- Per-arm total ~300 veh/hr, split across the fleet mix.
+         Straight ~140, each turn ~80. Each split by type: car .5 / moto .3 / auto .15 / bus .05 -->
+
+    <!-- ============ NORTH ============ -->
+    <flow id="f_N_S_car"  type="car"        route="r_N_S" begin="0" end="3600" vehsPerHour="70"/>
+    <flow id="f_N_S_moto" type="motorcycle" route="r_N_S" begin="0" end="3600" vehsPerHour="42"/>
+    <flow id="f_N_S_auto" type="auto"       route="r_N_S" begin="0" end="3600" vehsPerHour="21"/>
+    <flow id="f_N_S_bus"  type="bus"        route="r_N_S" begin="0" end="3600" vehsPerHour="7"/>
+    <flow id="f_N_E_car"  type="car"        route="r_N_E" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_N_E_moto" type="motorcycle" route="r_N_E" begin="0" end="3600" vehsPerHour="24"/>
+    <flow id="f_N_W_car"  type="car"        route="r_N_W" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_N_W_moto" type="motorcycle" route="r_N_W" begin="0" end="3600" vehsPerHour="24"/>
+
+    <!-- ============ SOUTH ============ -->
+    <flow id="f_S_N_car"  type="car"        route="r_S_N" begin="0" end="3600" vehsPerHour="70"/>
+    <flow id="f_S_N_moto" type="motorcycle" route="r_S_N" begin="0" end="3600" vehsPerHour="42"/>
+    <flow id="f_S_N_auto" type="auto"       route="r_S_N" begin="0" end="3600" vehsPerHour="21"/>
+    <flow id="f_S_N_bus"  type="bus"        route="r_S_N" begin="0" end="3600" vehsPerHour="7"/>
+    <flow id="f_S_E_car"  type="car"        route="r_S_E" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_S_E_moto" type="motorcycle" route="r_S_E" begin="0" end="3600" vehsPerHour="24"/>
+    <flow id="f_S_W_car"  type="car"        route="r_S_W" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_S_W_moto" type="motorcycle" route="r_S_W" begin="0" end="3600" vehsPerHour="24"/>
+
+    <!-- ============ EAST ============ -->
+    <flow id="f_E_W_car"  type="car"        route="r_E_W" begin="0" end="3600" vehsPerHour="70"/>
+    <flow id="f_E_W_moto" type="motorcycle" route="r_E_W" begin="0" end="3600" vehsPerHour="42"/>
+    <flow id="f_E_W_auto" type="auto"       route="r_E_W" begin="0" end="3600" vehsPerHour="21"/>
+    <flow id="f_E_W_bus"  type="bus"        route="r_E_W" begin="0" end="3600" vehsPerHour="7"/>
+    <flow id="f_E_N_car"  type="car"        route="r_E_N" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_E_N_moto" type="motorcycle" route="r_E_N" begin="0" end="3600" vehsPerHour="24"/>
+    <flow id="f_E_S_car"  type="car"        route="r_E_S" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_E_S_moto" type="motorcycle" route="r_E_S" begin="0" end="3600" vehsPerHour="24"/>
+
+    <!-- ============ WEST ============ -->
+    <flow id="f_W_E_car"  type="car"        route="r_W_E" begin="0" end="3600" vehsPerHour="70"/>
+    <flow id="f_W_E_moto" type="motorcycle" route="r_W_E" begin="0" end="3600" vehsPerHour="42"/>
+    <flow id="f_W_E_auto" type="auto"       route="r_W_E" begin="0" end="3600" vehsPerHour="21"/>
+    <flow id="f_W_E_bus"  type="bus"        route="r_W_E" begin="0" end="3600" vehsPerHour="7"/>
+    <flow id="f_W_N_car"  type="car"        route="r_W_N" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_W_N_moto" type="motorcycle" route="r_W_N" begin="0" end="3600" vehsPerHour="24"/>
+    <flow id="f_W_S_car"  type="car"        route="r_W_S" begin="0" end="3600" vehsPerHour="40"/>
+    <flow id="f_W_S_moto" type="motorcycle" route="r_W_S" begin="0" end="3600" vehsPerHour="24"/>
+
+</routes>

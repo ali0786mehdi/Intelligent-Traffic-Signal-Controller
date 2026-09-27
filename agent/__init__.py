@@ -1,1 +1,4 @@
-# agent package — DQN agent implementation (not yet implemented)
+# agent package — D3QN (Dueling + Double DQN) implementation
+from agent.dqn import DQNAgent, DuelingQNetwork, ReplayBuffer
+
+__all__ = ["DQNAgent", "DuelingQNetwork", "ReplayBuffer"]
