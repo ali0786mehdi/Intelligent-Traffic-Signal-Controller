@@ -20,26 +20,29 @@ pdflatex research_paper.tex   # run twice to resolve references/labels
 Output: `research_paper.pdf`.
 
 ## Notes
-- Uses only standard packages (cite, amsmath, graphicx, booktabs, xcolor, etc.)
-  all bundled with TeX Live/MiKTeX and Overleaf.
-- All six `\bibitem` entries match the `\cite{}` keys used in the text.
-- References are placeholders formatted to IEEE style — **verify and complete
-  each citation** against the actual sources before submission.
-- Fill in the author block (`[Your Department]`, `[Your Institution]`,
-  `[City, Country]`) at the top of the `.tex`.
-- **Not compile-tested here** (no TeX engine was available in this environment);
-  it was hand-validated for balanced environments and matching citations, but
-  do a test compile on Overleaf before submitting.
+- ~6 pages in IEEE two-column format (9 sections, 6 tables, 5 embedded figures,
+  1 algorithm block). Exact page count depends on the TeX engine's float
+  placement; if it runs slightly long, move a figure or two to `[b]`/`[h]`
+  placement or shrink with `width=0.9\columnwidth`.
+- Figures are in `figures/` (copied from `../results/plots/`) and referenced via
+  `\graphicspath{{figures/}}`.
+- Uses standard packages (cite, amsmath, graphicx, booktabs, algorithm,
+  algpseudocode, xcolor, url) — all bundled with TeX Live/MiKTeX and Overleaf.
+- All six `\bibitem` entries match the `\cite{}` keys (validated).
+- References are formatted to IEEE style but should be **verified** against the
+  actual sources before submission.
+- Fill in the author block (`[Your Department]`, etc.) at the top of the `.tex`.
+- **Not compile-tested here** (no TeX engine available in this environment). It
+  was validated structurally: balanced `\begin/\end` (30/30), all figure files
+  present, all citations resolved. Do one Overleaf compile before submitting.
+- **Originality:** the prose is written specifically for this project. Run it
+  through your institution's plagiarism checker (e.g., Turnitin) before
+  submission; verbatim overlap should be minimal since results, methodology, and
+  discussion describe this specific implementation.
 
-## Adding figures (optional)
-To embed the result charts, copy them next to the `.tex` and add, e.g.:
-```latex
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{compare_avg_wait.png}
-  \caption{Average waiting time: Static vs Actuated vs D3QN.}
-  \label{fig:wait}
-\end{figure}
-```
-The charts are in `../results/plots/` (`compare_avg_wait.png`,
-`training_curves.png`, `hetero_ablation.png`).
+## Figures
+All five result figures are **already embedded** in `research_paper.tex` and
+live in `figures/`: `compare_avg_wait.png`, `compare_avg_queue.png`,
+`compare_throughput.png`, `training_curves.png`, `hetero_ablation.png`.
+If you regenerate results, refresh them with:
+`cp ../results/plots/*.png figures/` (or the Windows `Copy-Item` equivalent).
