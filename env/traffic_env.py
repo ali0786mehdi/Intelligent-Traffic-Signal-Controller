@@ -82,6 +82,17 @@ STATE_DIM = (
     + 1                        # min-green flag
 )  # = 71
 
+# PCU factors (IRC 106-1990) keyed by SUMO vType id used in
+# network/intersection_hetero.rou.xml. Used only when pcu_weighting is on.
+PCU_FACTORS = {
+    "car": 1.0,
+    "motorcycle": 0.5,
+    "auto": 0.8,
+    "bus": 3.0,
+    "passenger": 1.0,   # homogeneous scenarios use this vType
+}
+DEFAULT_PCU = 1.0
+
 
 def _import_traci():
     sumo_home = os.environ.get("SUMO_HOME")
@@ -110,6 +121,7 @@ class TrafficSignalEnv(gym.Env):
         self.all_red_time = int(cfg.get("all_red_time", 2))
         self.decision_interval = int(cfg.get("decision_interval", 5))
         self.max_sim_time = float(cfg.get("max_sim_time", 3600.0))
+        self.pcu_weighting = bool(cfg.get("pcu_weighting", False))
 
         reward_cfg = cfg.get("reward", {})
         self.reward_calc = RewardCalculator(
@@ -198,10 +210,14 @@ class TrafficSignalEnv(gym.Env):
         self._advance(conn, self.decision_interval)
 
         # ---- READ new state + reward ----
-        queues = [conn.lane.getLastStepHaltingNumber(l) for l in INCOMING_LANES]
+        # PCU-aware queues drive the reward's queue penalty (when pcu_weighting
+        # is on, a bus counts ~3x, a motorcycle ~0.5x). Raw halting counts are
+        # kept separately for fair metric reporting across controllers.
+        queues_for_reward = [self._lane_queue(conn, l) for l in INCOMING_LANES]
+        raw_queues = [conn.lane.getLastStepHaltingNumber(l) for l in INCOMING_LANES]
         curr_wait = self._total_wait(conn)
         reward, components = self.reward_calc.compute(
-            self._prev_wait, curr_wait, self._prev_action, action, queues,
+            self._prev_wait, curr_wait, self._prev_action, action, queues_for_reward,
         )
         self._prev_wait = curr_wait
         self._prev_action = action
@@ -215,7 +231,7 @@ class TrafficSignalEnv(gym.Env):
         info = {
             "reward_components": components,
             "sim_time": self._sim_time,
-            "total_queue": int(sum(queues)),
+            "total_queue": int(sum(raw_queues)),
             "total_wait": float(curr_wait),
             "switched": switched,
             "arrived": int(self._arrived),
@@ -236,6 +252,21 @@ class TrafficSignalEnv(gym.Env):
 
     def _total_wait(self, conn) -> float:
         return float(sum(conn.lane.getWaitingTime(l) for l in INCOMING_LANES))
+
+    def _lane_queue(self, conn, lane: str) -> float:
+        """
+        Queue length for a lane. Raw halting-vehicle count normally; when
+        pcu_weighting is enabled, sum the PCU factors of halting vehicles
+        (IRC 106-1990) so a bus counts as ~3 cars and a motorcycle as ~0.5.
+        """
+        if not self.pcu_weighting:
+            return float(conn.lane.getLastStepHaltingNumber(lane))
+        pcu_sum = 0.0
+        for vid in conn.lane.getLastStepVehicleIDs(lane):
+            if conn.vehicle.getSpeed(vid) < 0.1:  # halting
+                vtype = conn.vehicle.getTypeID(vid)
+                pcu_sum += PCU_FACTORS.get(vtype, DEFAULT_PCU)
+        return pcu_sum
 
     def _get_state(self, conn) -> np.ndarray:
         density = np.zeros((NUM_LANES, NUM_CELLS), dtype=np.float32)
@@ -259,7 +290,7 @@ class TrafficSignalEnv(gym.Env):
                     speed[li, c] = speed[li, c] / cell_counts[li, c]
 
         queue = np.array(
-            [min(conn.lane.getLastStepHaltingNumber(l), MAX_QUEUE) / MAX_QUEUE
+            [min(self._lane_queue(conn, l), MAX_QUEUE) / MAX_QUEUE
              for l in INCOMING_LANES], dtype=np.float32,
         )
         wait = np.array(

@@ -33,7 +33,7 @@ def load_config(path: str) -> dict:
         return yaml.safe_load(fh)
 
 
-def build_env(cfg: dict, scenario: str) -> TrafficSignalEnv:
+def build_env(cfg: dict, scenario: str, pcu_weighting: bool = False) -> TrafficSignalEnv:
     sumocfg = cfg["env"]["sumocfg_scenarios"][scenario]
     env_cfg = {
         "min_green": cfg["env"]["min_green"],
@@ -41,6 +41,7 @@ def build_env(cfg: dict, scenario: str) -> TrafficSignalEnv:
         "all_red_time": cfg["env"]["all_red_time"],
         "decision_interval": cfg["env"]["decision_interval"],
         "max_sim_time": cfg["env"].get("max_sim_time", 3600.0),
+        "pcu_weighting": pcu_weighting,
         "reward": cfg["reward"],
     }
     return TrafficSignalEnv(sumocfg, config=env_cfg)
@@ -70,11 +71,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="D3QN training.")
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--scenario", default="balanced",
-                        choices=["balanced", "asymmetric", "surge"])
+                        choices=["balanced", "asymmetric", "surge", "hetero"])
     parser.add_argument("--episodes", type=int, default=None,
                         help="override training.num_episodes")
     parser.add_argument("--max-sim-time", type=float, default=None,
                         help="override env max_sim_time (shorter = faster episodes)")
+    parser.add_argument("--pcu-weighting", action="store_true",
+                        help="enable IRC PCU-weighted queue features (Phase 7)")
+    parser.add_argument("--tag", default="",
+                        help="suffix for checkpoint/curve filenames (e.g. _pcu)")
     parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
@@ -92,16 +97,17 @@ def main() -> int:
 
     num_episodes = args.episodes or cfg["training"]["num_episodes"]
 
-    env = build_env(cfg, args.scenario)
+    env = build_env(cfg, args.scenario, pcu_weighting=args.pcu_weighting)
     agent = build_agent(cfg, seed)
 
     os.makedirs("results/logs", exist_ok=True)
     os.makedirs("agent/models", exist_ok=True)
-    curve_path = f"results/logs/training_{args.scenario}.csv"
-    ckpt_path = f"agent/models/dqn_{args.scenario}.pt"
+    tag = args.tag
+    curve_path = f"results/logs/training_{args.scenario}{tag}.csv"
+    ckpt_path = f"agent/models/dqn_{args.scenario}{tag}.pt"
 
     print(f"[train] scenario={args.scenario} episodes={num_episodes} "
-          f"state_dim={STATE_DIM} device={agent.device}")
+          f"pcu_weighting={args.pcu_weighting} state_dim={STATE_DIM} device={agent.device}")
 
     fields = ["episode", "total_reward", "avg_wait", "avg_queue",
               "epsilon", "steps", "r_wait", "r_switch", "r_queue", "loss"]
