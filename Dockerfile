@@ -12,6 +12,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # ---- System dependencies + SUMO ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
         software-properties-common \
+        gnupg \
+        ca-certificates \
         curl \
         git \
         build-essential \
