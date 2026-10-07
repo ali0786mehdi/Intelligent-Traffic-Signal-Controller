@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signal Lab: Adaptive Traffic Control with D3QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#12161c;--panel:#1b222c;--ink:#eef0ea;--mute:#9aa4b2;--line:#2c3643;--g:#3ddc84;--a:#ffb020;--r:#ff5a52;--b:#6aa9ff;--cvbg:#0e1116;--road:#232b36;--paint:#5b6676;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f3f4f1;--panel:#fff;--ink:#151a21;--mute:#5b6572;--line:#d9ddd6;--g:#12a150;--a:#c77d00;--r:#d6342c;--b:#2a6fd6;--cvbg:#e6e9e4;--road:#b9c0ca;--paint:#fff}}
+:root[data-theme="light"]{--bg:#f3f4f1;--panel:#fff;--ink:#151a21;--mute:#5b6572;--line:#d9ddd6;--g:#12a150;--a:#c77d00;--r:#d6342c;--b:#2a6fd6;--cvbg:#e6e9e4;--road:#b9c0ca;--paint:#fff}
+:root[data-theme="dark"]{--bg:#12161c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.55}
+main{max-width:1100px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:clamp(2.2rem,6vw,4.4rem);line-height:1;letter-spacing:-.03em;font-weight:800;margin:0 0 14px;max-width:14ch}
+h2{font-size:clamp(1.5rem,3vw,2.1rem);letter-spacing:-.02em;margin:0 0 8px;font-weight:800}
+p{max-width:62ch;color:var(--mute);margin:0 0 14px}
+section{margin-top:72px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:28px;align-items:start;margin-top:24px}
+.stage{background:var(--cvbg);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+button,.btn{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;transition:background .2s,border-color .2s}
+button:hover{border-color:var(--mute)}
+button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+label.t{display:block;font-size:.85rem;color:var(--mute);margin-bottom:2px}
+.hud{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
+.hud div{border-top:2px solid var(--line);padding-top:6px;font-size:.85rem;color:var(--mute)}
+.hud b{display:block;font-size:1.7rem;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1}
+.sig{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--g);transition:background .2s}
+.note{font-size:.8rem;color:var(--mute);max-width:none}
+.chk{display:flex;gap:8px;align-items:center;font-size:.9rem;margin:4px 0}
+.row{display:grid;grid-template-columns:110px 1fr 120px;gap:12px;align-items:center;margin:10px 0;font-size:.95rem}
+.trk{height:22px;background:var(--line);border-radius:5px;overflow:hidden}
+.trk i{display:block;height:100%;width:0;border-radius:5px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.f{background:var(--r)}.a{background:var(--a)}.d{background:var(--g)}.n{background:var(--b)}
+.row b{font-variant-numeric:tabular-nums;text-align:right}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.flow button{flex:1 1 120px;text-align:left}
+.stack{display:flex;height:26px;border-radius:6px;overflow:hidden;margin:12px 0 6px}
+.stack i{display:block;border-right:2px solid var(--panel)}
+.big{font-size:2.6rem;font-weight:800;letter-spacing:-.03em;color:var(--g);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--g)}
+code{background:var(--line);padding:2px 6px;border-radius:5px;font-size:.88em}
+a{color:var(--b)}
+@media(max-width:820px){.hero{grid-template-columns:1fr}.row{grid-template-columns:84px 1fr 96px}}
+</style></head><body><main>
+
+<header>
+<h1>A traffic light that learns when to switch.</h1>
+<p>Fixed-time and actuated signals waste green on empty approaches. This project turns the paper <em>Adaptive Traffic Signal Control using a Dueling Double Deep Q-Network</em> (Mirza, Mujawar, Ansari, Dethe, Khandke; Vidyalankar Institute of Technology) into something you can drive: run an intersection, swap controllers, and compare.</p>
+</header>
+
+<div class="hero">
+ <div class="stage"><canvas id="cv" aria-label="Animated four-way intersection simulation"></canvas></div>
+ <div class="panel">
+  <label class="t">Controller</label>
+  <div class="seg" id="ctl"><button data-v="fixed" aria-pressed="false">Fixed-time</button><button data-v="actuated" aria-pressed="false">Actuated</button><button data-v="d3qn" aria-pressed="true">D3QN-style</button></div>
+  <label class="t">Demand</label>
+  <div class="seg" id="scn"><button data-v="balanced" aria-pressed="true">Balanced</button><button data-v="asym" aria-pressed="false">Asymmetric</button><button data-v="surge" aria-pressed="false">Surge at 60 s</button></div>
+  <label class="t">Speed</label>
+  <div class="seg" id="spd"><button data-v="1" aria-pressed="false">1x</button><button data-v="4" aria-pressed="true">4x</button><button data-v="10" aria-pressed="false">10x</button><button id="pp">Pause</button><button id="rs">Reset</button></div>
+  <label class="chk"><input type="checkbox" id="mx"> Mixed fleet (car, motorcycle, auto-rickshaw, bus)</label>
+  <label class="chk"><input type="checkbox" id="pcu"> Agent weights vehicles by PCU</label>
+  <div class="hud">
+   <div><b id="h-t">0 s</b>simulated time</div>
+   <div><b><span class="sig" id="h-sig"></span><span id="h-ph">NS green</span></b>signal</div>
+   <div><b id="h-w">0.0 s</b>avg waiting time</div>
+   <div><b id="h-q">0</b>halted vehicles</div>
+  </div>
+  <p class="note">Every controller obeys the paper's safety wrapper: 10 s minimum green, 3 s yellow, 2 s all-red, decisions every 5 s. The "D3QN-style" policy is a hand-coded stand-in that scores waiting pressure; it is not the trained network.</p>
+ </div>
+</div>
+
+<section>
+ <h2>Benchmark it yourself</h2>
+ <p>Runs 1200 simulated seconds with three seeds per controller, using the demand and fleet settings above. This is a simplified toy model, so the numbers differ from the paper's SUMO results below.</p>
+ <button id="bm">Run 1200 s benchmark</button>
+ <div class="panel" style="margin-top:14px"><div id="bm-bars"></div><p class="note" id="bm-note">Press the button to compare average waiting time.</p></div>
+</section>
+
+<section id="res">
+ <h2>Results reported in the paper</h2>
+ <p>SUMO 1.27.1, 1200 s episodes, mean over seeds 1, 2, 3. Throughput was statistically indistinguishable across controllers: the gain is less idling, not more vehicles served.</p>
+ <label class="t">Metric</label>
+ <div class="seg" id="met"><button data-v="wait" aria-pressed="true">Waiting time (s)</button><button data-v="queue" aria-pressed="false">Queue length (veh)</button><button data-v="co2" aria-pressed="false">CO₂ (×10⁶ mg)</button></div>
+ <label class="t">Scenario</label>
+ <div class="seg" id="rsc"><button data-v="0" aria-pressed="true">Balanced</button><button data-v="1" aria-pressed="false">Asymmetric</button><button data-v="2" aria-pressed="false">Surge</button></div>
+ <div class="panel"><div id="res-bars"></div><p class="note" id="res-note"></p></div>
+</section>
+
+<section>
+ <h2>Mixed traffic and PCU weighting</h2>
+ <p>A bus takes up far more road than a motorcycle. Counting each as one vehicle misleads the agent, so state and reward use IRC 106-1990 Passenger Car Units: car 1.0, motorcycle 0.5, auto-rickshaw 0.8, bus 3.0.</p>
+ <div class="two">
+  <div class="panel"><div id="het-bars"></div><p class="note">Average waiting time on the mixed-fleet scenario, ± std over 3 seeds.</p></div>
+  <div class="panel"><div class="big" id="pcu-n">0%</div><p>lower waiting time than the identical unweighted agent (22.36 s vs 29.38 s). Run-to-run spread fell from ±4.85 s to ±1.95 s. At the current training budget it still trails the actuated baseline (18.53 s).</p></div>
+ </div>
+</section>
+
+<section>
+ <h2>Inside the agent</h2>
+ <p>Click a stage to see what it does.</p>
+ <div class="panel">
+  <div class="flow" id="flow"></div>
+  <div id="flow-info"></div>
+ </div>
+</section>
+
+<section>
+ <h2>Try the reward function</h2>
+ <p>The agent is paid for cutting cumulative waiting time, charged for flicker and standing queues, then clipped to ±10 for stable learning.</p>
+ <div class="two"><div class="panel">
+  <label class="t">Waiting-time reduction W<sub>t-1</sub> − W<sub>t</sub>: <b id="v1">8</b> s</label><input type="range" id="s1" min="-20" max="20" value="8">
+  <label class="t">Total queue Σq: <b id="v2">12</b> vehicles</label><input type="range" id="s2" min="0" max="40" value="12">
+  <label class="chk"><input type="checkbox" id="sw"> Phase switched this step (penalty 0.5)</label>
+ </div><div class="panel"><div class="big" id="rw">0</div><p class="note">r = clip( ΔW − 0.5·[switch] − 0.1·Σq , −10, +10 )</p></div></div>
+</section>
+
+<section>
+ <h2>Limits and reproducibility</h2>
+ <p>Single isolated intersection, simulation only, permissive left turns, 80 to 150 training episodes. On mixed traffic the agent does not yet beat actuated control. Emissions are simulator estimates. Code, trained models, and experiment scripts: <a href="https://github.com/ali0786mehdi/Intelligent-Traffic-Signal-Controller">github.com/ali0786mehdi/Intelligent-Traffic-Signal-Controller</a>. Run <code>make all</code> (Linux/macOS) or <code>run.ps1 all</code> (Windows) inside Docker to regenerate every table and figure.</p>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const T={car:{p:1,l:14,wd:8,s:60,c:"#6aa9ff"},moto:{p:.5,l:8,wd:4,s:70,c:"#ffd166"},auto:{p:.8,l:11,wd:7,s:55,c:"#7ee081"},bus:{p:3,l:30,wd:10,s:45,c:"#ff8fa3"}};
+const SC={balanced:{NS:.14,EW:.14},asym:{NS:.24,EW:.06},surge:{NS:.1,EW:.1,surge:60}};
+const LEN=230,SL=40,AX={N:"NS",S:"NS",E:"EW",W:"EW"};
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const lanes=(s,ax)=>ax==="NS"?[s.q.N,s.q.S]:[s.q.E,s.q.W];
+const CTL={
+ fixed:s=>s.t%50<25?"NS":"EW",
+ actuated:s=>{const o=s.g==="NS"?"EW":"NS";if(s.ge>=40)return o;if(lanes(s,s.g).some(L=>L.some(v=>v.d>0&&v.d<30)))return s.g;return lanes(s,o).some(L=>L.length)?o:s.g},
+ d3qn:s=>{const o=s.g==="NS"?"EW":"NS";const sc=ax=>lanes(s,ax).reduce((a,L)=>a+L.reduce((b,v)=>b+(s.pcu?v.p:1)*(1+v.w/15)*(v.d<120?1:.4),0),0);return sc(o)>sc(s.g)*1.1+1?o:s.g}};
+class Sim{
+ constructor(ctl,sc,mixed,pcu,seed){Object.assign(this,{ctl,sc,mixed,pcu,t:0,g:"NS",ph:"green",pt:0,ge:0,dc:0,want:"NS",w:0,n:0,done:0,sq:0,st:0,halt:0});this.r=rng(seed);this.q={N:[],S:[],E:[],W:[]}}
+ rate(a){const s=this.sc;let v=s[AX[a]];if(s.surge&&this.t>=s.surge&&AX[a]==="NS")v=.3;return v}
+ pick(){if(!this.mixed)return T.car;const x=this.r();return x<.45?T.car:x<.8?T.moto:x<.93?T.auto:T.bus}
+ step(dt){this.t+=dt;let halted=0;
+  for(const a in this.q){const L=this.q[a];
+   if(this.r()<this.rate(a)*dt){const ty=this.pick(),last=L[L.length-1];if(!last||LEN>=last.d+last.l+4){L.push({d:LEN,l:ty.l,wd:ty.wd,p:ty.p,s:ty.s,c:ty.c,w:0});this.n++}}
+   const gr=this.g===AX[a],go=gr&&this.ph==="green",yel=gr&&this.ph==="yellow";
+   for(let i=0;i<L.length;i++){const v=L[i],pv=L[i-1];
+    const stop=(go||v.d<=0||(yel&&v.d<20))?-1e9:0;
+    const lim=Math.max(stop,pv?pv.d+pv.l+4:-1e9);
+    const nd=Math.max(lim,v.d-v.s*dt),sp=(v.d-nd)/dt;v.d=nd;
+    if(sp<6&&v.d>0){v.w+=dt;this.w+=dt;halted++}}
+   while(L.length&&L[0].d<-290){L.shift();this.done++}}
+  this.pt+=dt;this.dc+=dt;
+  if(this.dc>=5){this.dc=0;this.want=CTL[this.ctl](this)}
+  if(this.ph==="green"){this.ge+=dt;if(this.want!==this.g&&this.ge>=10){this.ph="yellow";this.pt=0}}
+  else if(this.ph==="yellow"&&this.pt>=3){this.ph="allred";this.pt=0}
+  else if(this.ph==="allred"&&this.pt>=2){this.g=this.g==="NS"?"EW":"NS";this.ph="green";this.ge=0}
+  this.sq+=halted;this.st++;this.halt=halted}
+ get avgW(){return this.w/Math.max(1,this.n)}
+}
+/* ---------- state + controls ---------- */
+const st={ctl:"d3qn",scn:"balanced",spd:4,run:!matchMedia("(prefers-reduced-motion:reduce)").matches};
+let sim;
+function reset(){sim=new Sim(st.ctl,SC[st.scn],$("#mx").checked,$("#pcu").checked,7)}
+function seg(id,key,cb){$(id).addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(!b)return;[...$(id).querySelectorAll("button[data-v]")].forEach(x=>x.setAttribute("aria-pressed",x===b));cb(b.dataset.v)})}
+seg("#ctl","ctl",v=>{st.ctl=v;reset()});seg("#scn","scn",v=>{st.scn=v;reset()});seg("#spd","spd",v=>st.spd=+v);
+$("#mx").onchange=$("#pcu").onchange=reset;$("#rs").onclick=reset;
+$("#pp").onclick=()=>{st.run=!st.run;$("#pp").textContent=st.run?"Pause":"Play"};
+if(!st.run)$("#pp").textContent="Play";
+/* ---------- drawing ---------- */
+const cv=$("#cv"),cx=cv.getContext("2d"),dpr=Math.min(devicePixelRatio||1,2);cv.width=cv.height=560*dpr;cx.scale(dpr,dpr);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function draw(){const c=280;cx.fillStyle=css("--cvbg");cx.fillRect(0,0,560,560);
+ cx.fillStyle=css("--road");cx.fillRect(c-40,0,80,560);cx.fillRect(0,c-40,560,80);
+ cx.strokeStyle=css("--paint");cx.lineWidth=2;cx.setLineDash([10,10]);
+ [[c,0,c,c-40],[c,c+40,c,560],[0,c,c-40,c],[c+40,c,560,c]].forEach(l=>{cx.beginPath();cx.moveTo(l[0],l[1]);cx.lineTo(l[2],l[3]);cx.stroke()});cx.setLineDash([]);
+ cx.lineWidth=3;[[c-40,c-40,c,c-40],[c,c+40,c+40,c+40],[c+40,c-40,c+40,c],[c-40,c,c-40,c+40]].forEach(l=>{cx.beginPath();cx.moveTo(l[0],l[1]);cx.lineTo(l[2],l[3]);cx.stroke()});
+ const pos={N:(p)=>[c-20,c-p,0],S:p=>[c+20,c+p,0],E:p=>[c+p,c-20,1],W:p=>[c-p,c+20,1]};
+ for(const a in sim.q)for(const v of sim.q[a]){const[x,y,h]=pos[a](SL+v.d+v.l/2);cx.fillStyle=v.c;
+  if(h)cx.fillRect(x-v.l/2,y-v.wd/2,v.l,v.wd);else cx.fillRect(x-v.wd/2,y-v.l/2,v.wd,v.l)}
+ const L={N:[c-52,c-52],S:[c+52,c+52],E:[c+52,c-52],W:[c-52,c+52]};
+ for(const a in L){const gr=sim.g===AX[a];cx.fillStyle=gr?(sim.ph==="green"?css("--g"):sim.ph==="yellow"?css("--a"):css("--r")):css("--r");cx.beginPath();cx.arc(L[a][0],L[a][1],7,0,7);cx.fill()}}
+function hud(){$("#h-t").textContent=Math.floor(sim.t)+" s";
+ const col=sim.ph==="green"?"--g":sim.ph==="yellow"?"--a":"--r";$("#h-sig").style.background=css(col);
+ $("#h-ph").textContent=sim.ph==="allred"?"all red":sim.g+" "+sim.ph;
+ $("#h-w").textContent=sim.avgW.toFixed(1)+" s";$("#h-q").textContent=sim.halt}
+let last=performance.now();
+function loop(now){const dt=Math.min((now-last)/1000,.05);last=now;
+ if(st.run){let rem=dt*st.spd;while(rem>0){const d=Math.min(.1,rem);sim.step(d);rem-=d}}
+ draw();hud();requestAnimationFrame(loop)}
+reset();requestAnimationFrame(loop);
+/* ---------- bars ---------- */
+function mk(id,names,cls){$(id).innerHTML=names.map((n,i)=>`<div class="row"><span>${n}</span><div class="trk"><i class="${cls[i]}"></i></div><b></b></div>`).join("")}
+function set(id,vals,txt){const m=Math.max(...vals);[...$(id).children].forEach((r,i)=>{r.querySelector("i").style.width=(vals[i]/m*100)+"%";r.querySelector("b").textContent=txt[i]})}
+const CN=["Fixed-time","Actuated","D3QN"],CC=["f","a","d"];
+mk("#bm-bars",CN,CC);mk("#res-bars",CN,CC);mk("#het-bars",["Fixed-time","Actuated","D3QN no PCU","D3QN + PCU"],["f","a","n","d"]);
+$("#bm").onclick=()=>{$("#bm-note").textContent="Running 9 simulations…";setTimeout(()=>{
+ const res=["fixed","actuated","d3qn"].map(c=>{let w=0;[1,2,3].forEach(sd=>{const s=new Sim(c,SC[st.scn],$("#mx").checked,$("#pcu").checked,sd);for(let i=0;i<4800;i++)s.step(.25);w+=s.avgW});return w/3});
+ set("#bm-bars",res,res.map(v=>v.toFixed(1)+" s"));
+ $("#bm-note").textContent=`D3QN-style is ${(100*(1-res[2]/res[0])).toFixed(0)}% below fixed-time and ${(100*(1-res[2]/res[1])).toFixed(0)}% ${res[2]<res[1]?"below":"above"} actuated in this toy model (${st.scn} demand).`},30)};
+const D={wait:[[56.85,19.29,11.97],[64.64,23.82,15.82],[34.88,7.42,6.08]],queue:[[4.14,2.29,1.93],[4.71,2.45,2.11],[2.71,1.16,.96]],co2:[[19.4,15.5,2.1],[23.3,17.8,2.6],[12.6,9.5,1.5]]};
+const U={wait:" s",queue:" veh",co2:""};let met="wait",sc=0;
+function showRes(){const v=D[met][sc];set("#res-bars",v,v.map(x=>x+U[met]));
+ $("#res-note").textContent=`D3QN is ${(100*(1-v[2]/v[0])).toFixed(1)}% lower than fixed-time and ${(100*(1-v[2]/v[1])).toFixed(1)}% lower than actuated.`}
+seg("#met","m",v=>{met=v;showRes()});seg("#rsc","s",v=>{sc=+v;showRes()});
+function count(el,to,suf,ms=1200){const t0=performance.now();(function f(n){const k=Math.min(1,(n-t0)/ms);el.textContent=(to*(1-Math.pow(1-k,3))).toFixed(1)+suf;if(k<1)requestAnimationFrame(f)})(t0)}
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;io.unobserve(e.target);
+ if(e.target.id==="res")showRes();
+ if(e.target.id==="het"){set("#het-bars",[56.11,18.53,29.38,22.36],["56.11 ± 0.95","18.53 ± 1.49","29.38 ± 4.85","22.36 ± 1.95"]);count($("#pcu-n"),23.9,"%")}}),{threshold:.25});
+io.observe($("#res"));$("#het-bars").closest("section").id="het";io.observe($("#het"));
+/* ---------- architecture ---------- */
+const F=[
+["State (71)","Normalized to [0,1]: per-lane density (24) and speed (24) in 3 cells each, queue length (8), cumulative waiting (8), one-hot phase (6), and a minimum-green-elapsed flag (1).",[24,24,8,8,6,1]],
+["2 × 128 ReLU","A fully connected trunk of two 128-unit layers shared by both heads. Adam, learning rate 5e-4, γ = 0.99, batch 64, replay buffer of 50,000.",0],
+["Value + Advantage","One head estimates how good the state is, V(s). The other estimates how much better each action is, A(s,a). Many signal states don't depend much on the action, so splitting them speeds learning.",0],
+["Q = V + (A − mean A)","Q(s,a) = V(s) + (A(s,a) − 1/|A| Σ A(s,a′)). Subtracting the mean removes the ambiguity between V and A. Double DQN targets: the online net picks the next action, the target net scores it (updated every 500 steps).",0],
+["Safety wrapper","Two actions: serve North–South or East–West, every 5 s. The environment, not the agent, enforces 10 s minimum green, then 3 s yellow and 2 s all-red. Any policy the agent learns is a physically valid signal plan.",0]];
+$("#flow").innerHTML=F.map((f,i)=>`<button data-i="${i}" aria-pressed="${i==0}">${f[0]}</button>`).join("");
+const cols=["var(--g)","var(--b)","var(--a)","var(--r)","#c58bff","var(--mute)"],nm=["Density","Speed","Queue","Waiting","Phase","Flag"];
+function info(i){const f=F[i];$("#flow-info").innerHTML=`<p style="color:var(--ink)">${f[1]}</p>`+(f[2]?`<div class="stack">${f[2].map((n,k)=>`<i style="width:${n/71*100}%;background:${cols[k]}" title="${nm[k]}: ${n}"></i>`).join("")}</div><p class="note">${f[2].map((n,k)=>nm[k]+" "+n).join(" · ")}</p>`:"")}
+$("#flow").onclick=e=>{const b=e.target.closest("button");if(!b)return;[...$("#flow").children].forEach(x=>x.setAttribute("aria-pressed",x===b));info(+b.dataset.i)};info(0);
+/* ---------- reward ---------- */
+function rw(){const a=+$("#s1").value,q=+$("#s2").value,s=$("#sw").checked?.5:0;$("#v1").textContent=a;$("#v2").textContent=q;
+ const r=Math.max(-10,Math.min(10,a-s-.1*q));$("#rw").textContent=r.toFixed(1);$("#rw").style.color=r>=0?"var(--g)":"var(--r)"}
+["#s1","#s2","#sw"].forEach(s=>$(s).oninput=rw);rw();
+</script></body></html>
