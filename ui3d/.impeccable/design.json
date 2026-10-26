@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-27T03:28:20.475+05:30",
+  "title": "Design System: Intelligent Traffic Signal Controller · 3D",
+  "extensions": {
+    "colorMeta": {
+      "asphalt":            { "role": "neutral",   "displayName": "Asphalt",            "canonical": "#2b2e31", "tonalRamp": ["#0e1011","#181a1c","#222528","#2b2e31","#363a3e","#43484d","#5a6068","#8a9099"] },
+      "asphalt-2":          { "role": "neutral",   "displayName": "Asphalt Mid",         "canonical": "#363a3e", "tonalRamp": ["#121416","#1c1f22","#272b2e","#363a3e","#43484d","#555b61","#707880","#9da4ab"] },
+      "asphalt-3":          { "role": "neutral",   "displayName": "Asphalt High",        "canonical": "#43484d", "tonalRamp": ["#181b1d","#232729","#2f3336","#43484d","#555b61","#666d74","#7d868e","#aab2b9"] },
+      "paint":              { "role": "neutral",   "displayName": "Thermoplastic White", "canonical": "#f5f3ec", "tonalRamp": ["#4a4840","#6e6c65","#929088","#b6b4ac","#cac8c0","#dddbd3","#eceae2","#f5f3ec"] },
+      "paint-2":            { "role": "neutral",   "displayName": "Paint Secondary",     "canonical": "#c9c6bd", "tonalRamp": ["#3e3c36","#5f5d56","#807e77","#9d9b94","#b6b4ac","#c9c6bd","#dddbd3","#f0eeea"] },
+      "paint-3":            { "role": "neutral",   "displayName": "Paint Tertiary",      "canonical": "#9d9b94", "tonalRamp": ["#2e2d2a","#46454200","#5e5d58","#76756f","#9d9b94","#b2b0a9","#c6c4bc","#dadad2"] },
+      "marking":            { "role": "primary",   "displayName": "Marking Yellow",      "canonical": "#efbf32", "tonalRamp": ["#3b2e08","#5e4a0e","#8c6e14","#b8911c","#d4a826","#efbf32","#f5d06e","#fae9b3"] },
+      "sign":               { "role": "tertiary",  "displayName": "Guide Sign Green",    "canonical": "#0d6a49", "tonalRamp": ["#021a12","#04311f","#06482e","#0d6a49","#148a5e","#1bac76","#3fca96","#8ee6c4"] },
+      "signal-green":       { "role": "secondary", "displayName": "Signal Green",        "canonical": "#2bd47f", "tonalRamp": ["#061f14","#0a3c24","#0f5a37","#1a7e50","#2bd47f","#65e4aa","#9aeec5","#cef7e2"] },
+      "signal-yellow":      { "role": "secondary", "displayName": "Signal Amber",        "canonical": "#ffb300", "tonalRamp": ["#3d2b00","#664800","#996c00","#cc9000","#ffb300","#ffcc55","#ffe099","#fff4dd"] },
+      "signal-red":         { "role": "secondary", "displayName": "Signal Red",          "canonical": "#ff5a47", "tonalRamp": ["#3d0e09","#661812","#991f18","#cc2820","#ff5a47","#ff8a7a","#ffb8b1","#ffe5e2"] },
+      "controller-static":  { "role": "secondary", "displayName": "Controller Coral",    "canonical": "#ff8a6b", "tonalRamp": ["#3d1606","#66230a","#99350f","#cc4a17","#ff8a6b","#ffad97","#ffcdc0","#ffeee9"] },
+      "controller-actuated":{ "role": "secondary", "displayName": "Controller Amber",    "canonical": "#efbf32", "tonalRamp": ["#3b2e08","#5e4a0e","#8c6e14","#b8911c","#d4a826","#efbf32","#f5d06e","#fae9b3"] },
+      "controller-dqn":     { "role": "secondary", "displayName": "Controller Cyan",     "canonical": "#45d8c4", "tonalRamp": ["#08302c","#0e524a","#157569","#1d9889","#45d8c4","#83e8dd","#b9f2ec","#e1faf8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display",  "purpose": "Project title in the guide-sign header. One per viewport." },
+      "headline":{ "displayName": "Headline", "purpose": "Racer name in controller rows—most prominent interactive label." },
+      "title":   { "displayName": "Title",    "purpose": "Slab section headings h2/h3. All-caps with wide tracking." },
+      "body":    { "displayName": "Body",     "purpose": "Detail lines, scenario blurbs, board text, toast messages." },
+      "label":   { "displayName": "Label Mono","purpose": "All live numeric readouts: clock, timers, Q-values, metrics." },
+      "caption": { "displayName": "Caption",  "purpose": "Fine print, hints, chart captions, supplementary cues." }
+    },
+    "shadows": [
+      {
+        "name": "slab-shadow",
+        "value": "0 14px 34px -14px rgba(28, 38, 48, 0.55), 0 3px 8px -2px rgba(28, 38, 48, 0.28)",
+        "purpose": "Structural lift on all slabs, the guide-sign header, and the toast. Applied unconditionally; does not change on hover or state."
+      },
+      {
+        "name": "sign-inset-border",
+        "value": "inset 0 0 0 3px #0d6a49, inset 0 0 0 5px #f5f3ec",
+        "purpose": "Guide-sign header only. Double inset border reproducing the retroreflective edge of a US highway sign. Not a system elevation token."
+      }
+    ],
+    "motion": [
+      { "name": "ease-expressive", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default easing (--ease) for all state transitions: buttons, racer rows, segmented controls, toast, tag chips." },
+      { "name": "duration-standard", "value": "0.25s", "purpose": "Standard transition duration for background-color and color on interactive surfaces." },
+      { "name": "duration-fast", "value": "0.2s", "purpose": "Faster transitions for play button scale, icon-btn hover." },
+      { "name": "duration-slow", "value": "0.3s", "purpose": "Racer row border and tag chip opacity/transform." },
+      { "name": "duration-camera", "value": "1.3s", "purpose": "Camera tween duration in the 3D scene (not a CSS property)." },
+      { "name": "surge-pulse", "value": "pulse 1.6s cubic-bezier(0.16,1,0.3,1) infinite", "purpose": "Box-shadow pulse on the surge marker when .app.surging is active." },
+      { "name": "bar-grow", "value": "grow 0.9s cubic-bezier(0.16,1,0.3,1) both", "purpose": "scaleX(0→1) entrance on SUMO results bar charts." }
+    ],
+    "breakpoints": [
+      { "name": "mid",    "value": "1180px", "purpose": "Narrow three-column layout; compass and vsep hidden." },
+      { "name": "phone",  "value": "900px",  "purpose": "Single-column layout, sticky canvas, fixed transport bar." },
+      { "name": "narrow", "value": "420px",  "purpose": "Reduced speed-segment button padding." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Surface Button",
+      "kind": "button",
+      "refersTo": "btn",
+      "description": "General-purpose action button. Primary call-to-action for non-transport actions (SUMO results, agent toggle).",
+      "html": "<button class=\"ds-btn\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/></svg><span>Paint the state on the road</span></button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 7px 13px 6px; border-radius: 8px; background: #363a3e; border: 1px solid rgba(245,243,236,0.16); color: #f5f3ec; font-family: 'Overpass', system-ui, sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background-color 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s cubic-bezier(0.16,1,0.3,1), color 0.25s cubic-bezier(0.16,1,0.3,1); } .ds-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-btn:hover { background: #43484d; border-color: rgba(245,243,236,0.32); } .ds-btn:focus-visible { outline: 2px solid #efbf32; outline-offset: 2px; } .ds-btn[aria-pressed='true'], .ds-btn[aria-expanded='true'] { background: #f5f3ec; color: #2b2e31; border-color: #f5f3ec; }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-btn",
+      "description": "36×36 icon-only control. Used for close, restart, and supplementary actions.",
+      "html": "<button class=\"ds-icon-btn\" aria-label=\"Restart with new traffic seed\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 12a8 8 0 1 0 2.4-5.7\"/><path d=\"M4 4v4.5h4.5\"/></svg></button>",
+      "css": ".ds-icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; border: 0; background: transparent; color: #c9c6bd; cursor: pointer; transition: background-color 0.2s cubic-bezier(0.16,1,0.3,1), color 0.2s cubic-bezier(0.16,1,0.3,1); } .ds-icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } .ds-icon-btn:hover { background: rgba(255,255,255,0.08); color: #f5f3ec; } .ds-icon-btn:focus-visible { outline: 2px solid #efbf32; outline-offset: 2px; }"
+    },
+    {
+      "name": "Play / Pause Button",
+      "kind": "button",
+      "refersTo": "play-btn",
+      "description": "Primary transport control. 44px circle, inverted colours, scales on hover. The only circular button in the system.",
+      "html": "<button class=\"ds-play\" aria-label=\"Pause\"><svg class=\"ds-i-pause\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5v14M16 5v14\"/></svg><svg class=\"ds-i-play\" viewBox=\"0 0 24 24\" aria-hidden=\"true\" style=\"display:none\"><path d=\"M7 4.5v15l12-7.5-12-7.5Z\"/></svg></button>",
+      "css": ".ds-play { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #f5f3ec; color: #2b2e31; cursor: pointer; transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), background-color 0.2s; } .ds-play svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; } .ds-play .ds-i-play { fill: currentColor; stroke-width: 1.5; } .ds-play:hover { background: #ffffff; transform: scale(1.04); } .ds-play:focus-visible { outline: 2px solid #efbf32; outline-offset: 2px; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "seg-button",
+      "description": "Radio-group selector for scenarios, speeds, and camera views. Dark track with thermoplastic-white selected state.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Simulation speed\"><button role=\"radio\" aria-checked=\"false\" data-value=\"1\">1×</button><button role=\"radio\" aria-checked=\"true\" data-value=\"5\">5×</button><button role=\"radio\" aria-checked=\"false\" data-value=\"20\">20×</button><button role=\"radio\" aria-checked=\"false\" data-value=\"60\">60×</button></div>",
+      "css": ".ds-seg { display: flex; gap: 4px; padding: 3px; background: rgba(0,0,0,0.22); border-radius: 8px; } .ds-seg button { flex: 1 1 auto; min-height: 34px; padding: 6px 8px 5px; border: 0; border-radius: 6px; background: transparent; color: #c9c6bd; font-family: 'Overpass', system-ui, sans-serif; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background-color 0.25s cubic-bezier(0.16,1,0.3,1), color 0.25s cubic-bezier(0.16,1,0.3,1); } .ds-seg button:hover { color: #f5f3ec; background: rgba(255,255,255,0.06); } .ds-seg button[aria-checked='true'] { background: #f5f3ec; color: #2b2e31; } .ds-seg button:focus-visible { outline: 2px solid #efbf32; outline-offset: 2px; }"
+    },
+    {
+      "name": "Slab Panel",
+      "kind": "card",
+      "refersTo": "slab",
+      "description": "The primary container primitive. Asphalt surface with fractal-noise grain texture, used for every floating panel.",
+      "html": "<section class=\"ds-slab\"><div class=\"ds-slab-head\"><h2>Signal cabinet</h2><span class=\"ds-hint\">D3QN</span></div><div class=\"ds-lane-rule\" aria-hidden=\"true\"></div><p style=\"font-size:0.82rem;color:#c9c6bd;margin:0\">Panel content goes here.</p></section>",
+      "css": ".ds-slab { background-color: #2b2e31; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\"); border-radius: 10px; box-shadow: 0 14px 34px -14px rgba(28,38,48,0.55), 0 3px 8px -2px rgba(28,38,48,0.28); padding: 14px 16px; color: #f5f3ec; font-family: 'Overpass', system-ui, sans-serif; } .ds-slab-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; } .ds-slab-head h2 { margin: 0; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; } .ds-hint { font-size: 0.74rem; color: #9d9b94; } .ds-lane-rule { height: 2px; margin: 14px 0 12px; background: repeating-linear-gradient(90deg, rgba(245,243,236,0.28) 0 16px, transparent 16px 26px); }"
+    },
+    {
+      "name": "Guide Sign Header",
+      "kind": "custom",
+      "refersTo": "sign-header",
+      "description": "Project title panel. Reproduces a US highway guide sign with inset double border, green fill, Overpass 800.",
+      "html": "<header class=\"ds-sign\"><h1>Intelligent Traffic Signal Controller</h1><p>Dueling Double DQN against fixed-time and actuated signals, on one SUMO intersection rebuilt for the browser.</p></header>",
+      "css": ".ds-sign { background: #0d6a49; border-radius: 12px; padding: 14px 18px 15px; box-shadow: inset 0 0 0 3px #0d6a49, inset 0 0 0 5px #f5f3ec, 0 14px 34px -14px rgba(28,38,48,0.55), 0 3px 8px -2px rgba(28,38,48,0.28); color: #ffffff; font-family: 'Overpass', system-ui, sans-serif; } .ds-sign h1 { margin: 0; font-weight: 800; font-size: 1.32rem; line-height: 1.12; letter-spacing: -0.005em; text-wrap: balance; } .ds-sign p { margin: 6px 0 0; font-size: 0.82rem; line-height: 1.38; color: #d7ebe1; max-width: 40ch; }"
+    },
+    {
+      "name": "Racer Row (Controller Selector)",
+      "kind": "custom",
+      "refersTo": "seg-button",
+      "description": "Three-column radio button for selecting which controller to watch. Colour key swatch, label+stats, live metric value. Thermoplastic-white border on selection.",
+      "html": "<button class=\"ds-racer\" role=\"radio\" aria-checked=\"true\" style=\"--k:#45d8c4\"><span class=\"ds-racer-key\" aria-hidden=\"true\"></span><span class=\"ds-racer-name\">D3QN<span class=\"ds-racer-tag\">In view</span></span><span class=\"ds-racer-sub\">Dueling Double DQN · browser-trained<span class=\"ds-racer-stats\">queue 3 · 1240 veh/h</span></span><span class=\"ds-racer-val\"><b>12.4</b><span>avg wait s</span></span></button>",
+      "css": ".ds-racer { display: grid; grid-template-columns: 12px 1fr auto; grid-template-rows: auto auto; column-gap: 10px; row-gap: 1px; align-items: center; text-align: left; width: 100%; padding: 9px 10px 8px; border-radius: 8px; border: 1px solid transparent; background: rgba(255,255,255,0.035); cursor: pointer; color: #f5f3ec; font-family: 'Overpass', system-ui, sans-serif; transition: background-color 0.3s cubic-bezier(0.16,1,0.3,1), border-color 0.3s cubic-bezier(0.16,1,0.3,1); } .ds-racer:hover { background: rgba(255,255,255,0.07); } .ds-racer[aria-checked='true'] { background: rgba(245,243,236,0.1); border-color: rgba(245,243,236,0.55); } .ds-racer-key { grid-row: 1/3; width: 12px; height: 12px; border-radius: 3px; background: var(--k); } .ds-racer-name { font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; } .ds-racer-tag { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #2b2e31; background: #f5f3ec; border-radius: 4px; padding: 2px 5px 1px; opacity: 0; transform: translateX(-4px); transition: opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1); } .ds-racer[aria-checked='true'] .ds-racer-tag { opacity: 1; transform: none; } .ds-racer-sub { grid-column: 2; font-size: 0.72rem; color: #9d9b94; line-height: 1.4; } .ds-racer-stats { display: block; font-size: 0.68rem; color: #c9c6bd; } .ds-racer-val { grid-column: 3; grid-row: 1/3; text-align: right; } .ds-racer-val b { display: block; font-family: 'Overpass Mono', monospace; font-variant-numeric: tabular-nums; font-size: 1.32rem; font-weight: 600; line-height: 1.05; } .ds-racer-val span { font-size: 0.68rem; color: #9d9b94; } .ds-racer:focus-visible { outline: 2px solid #efbf32; outline-offset: 2px; }"
+    },
+    {
+      "name": "Toast Notification",
+      "kind": "custom",
+      "refersTo": "btn",
+      "description": "Transient status message. Inverted (paint background, asphalt text). Floats above the transport bar; dismisses after 3.8 s.",
+      "html": "<div class=\"ds-toast ds-toast--show\" role=\"status\" aria-live=\"polite\">New traffic seed. All three controllers restart on the same demand.</div>",
+      "css": ".ds-toast { position: fixed; left: 50%; bottom: 92px; transform: translate(-50%, 8px); background: #f5f3ec; color: #2b2e31; font-family: 'Overpass', system-ui, sans-serif; font-size: 0.82rem; font-weight: 600; padding: 9px 14px 8px; border-radius: 8px; box-shadow: 0 14px 34px -14px rgba(28,38,48,0.55), 0 3px 8px -2px rgba(28,38,48,0.28); opacity: 0; pointer-events: none; transition: opacity 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1); white-space: nowrap; } .ds-toast--show { opacity: 1; transform: translate(-50%, 0); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Road-Marking Interface",
+    "overview": "Every panel, label, and control is built from the vocabulary of a real intersection: asphalt slabs with aggregate grain texture, dashed thermoplastic lane-line dividers between sections, white thermoplastic for selected states, and marking yellow for focus rings and live accents. The three controllers are colour-coded like signal lampheads—coral static, amber actuated, cyan D3QN—and the city beyond the canvas (warm plaster, sage lawn, park pavilion) provides depth without competing for attention.\n\nThe layout refuses the dashboard-beside-a-canvas arrangement: the 3D junction fills the full viewport and UI panels float in front of it, painted in the same surface language as the road. Density is high but deliberate—every value shown corresponds to a live simulation value—and whitespace is replaced by the breathing room of the grain texture and the open sky behind.\n\nTypography is entirely Overpass (Highway Gothic lineage) paired with Overpass Mono for measurements and tabular data. The pairing is utilitarian and purposeful: a public-infrastructure display face for an infrastructure control system.",
+    "keyCharacteristics": [
+      "Full-bleed WebGL canvas behind all panels; no chrome surrounds the intersection.",
+      "UI panels are asphalt-surfaced slabs with a subtle SVG fractal-noise grain, never flat solid fills alone.",
+      "Dashed lane-line dividers (repeating-linear-gradient) replace rule lines as section separators.",
+      "Marking yellow (#efbf32) is the single focus-ring and live-accent colour; it earns its rarity.",
+      "Three controller identity colours (coral/amber/cyan) used only for data traces, key swatches, and winning-cell callouts—never as panel fill.",
+      "Overpass 800 weight for all labels and headings; Overpass Mono for every numeric readout."
+    ],
+    "rules": [
+      { "name": "The One-Accent Rule",         "body": "Marking yellow (#efbf32) is the sole global accent. It appears on focus rings, the timeline surge marker, and the overlay queue pillars. No other colour may serve as a general interactive accent; controller identity colours (coral, amber, cyan) are data channels, not UI chrome.", "section": "colors" },
+      { "name": "The Road-Surface Rule",        "body": "UI slabs always carry both background-color: var(--asphalt) and background-image: var(--grain). A plain #2b2e31 fill without the grain texture is a defect, not a variant.", "section": "colors" },
+      { "name": "The No-Serif Rule",            "body": "No serif face is loaded or used. Overpass is the sole type family for all rendered text, including in-canvas canvas-texture labels (queue pillar sprites use Overpass Mono in the canvas 2D context).", "section": "typography" },
+      { "name": "The Mono-for-Numbers Rule",    "body": "Every live numeric value uses Overpass Mono with font-variant-numeric: tabular-nums. Mixing proportional digits into live-updating readouts is a defect.", "section": "typography" },
+      { "name": "The Structural Shadow Rule",   "body": "Shadows do not respond to hover or state changes. Every .slab and the .sign carry var(--shadow) unconditionally. Motion and state changes are expressed through background-color and color transitions, not shadow changes.", "section": "elevation" },
+      { "name": "The No-Hard-Edge Rule",        "body": "Every interactive surface carries at minimum a 6px radius. Zero-radius rectangles do not appear in the UI layer (they appear in the 3D scene as road geometry, not as panels).", "section": "shapes" }
+    ],
+    "dos": [
+      "Do use both background-color: var(--asphalt) and background-image: var(--grain) together on every .slab. The grain is structural to the road-marking world.",
+      "Do use font-family: 'Overpass Mono' with font-variant-numeric: tabular-nums for every numeric readout that updates live.",
+      "Do use outline: 2px solid var(--marking); outline-offset: 2px for all :focus-visible states. Marking yellow is the only focus colour.",
+      "Do use the dashed .lane-rule gradient as the section divider inside slabs. A hairline border-top is not part of this world.",
+      "Do use var(--ease) (cubic-bezier(0.16, 1, 0.3, 1)) for all state transitions. Do not introduce additional easing curves.",
+      "Do keep controller identity colours (coral #ff8a6b, amber #efbf32, cyan #45d8c4) confined to data channels: traces, key swatches, winning cells, bar fills.",
+      "Do honour prefers-reduced-motion: reduce by targeting all transition-duration and animation-duration to 0.01ms."
+    ],
+    "donts": [
+      "Don't add a serif or display face. Overpass is the only typeface. New screens must not import additional font families.",
+      "Don't use box-shadow changes as hover or state feedback—shadows are structural and static per the Structural Shadow Rule.",
+      "Don't use solid fills without the var(--grain) texture on slab-level containers. A plain background: #2b2e31 on a slab is a craft defect.",
+      "Don't use the guide-sign green (#0d6a49) outside the .sign header. It is a literal reproduction of a highway sign, not a brand accent.",
+      "Don't introduce zero-radius rectangles in the UI layer. Every interactive or container surface has at minimum a 6px corner radius.",
+      "Don't place controller identity colours on backgrounds where they would compete with the thermoplastic-white selected state; the white inversion is the selection signal.",
+      "Don't display raw CSS pixel measurements in UI copy. Values are for code only; visible labels use semantic language (s, veh/h, etc.)."
+    ]
+  }
+}

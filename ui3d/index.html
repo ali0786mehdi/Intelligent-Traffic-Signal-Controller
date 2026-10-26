@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Intelligent Traffic Signal Controller · 3D</title>
+  <meta name="description" content="A daytime 3D intersection where a Dueling Double DQN, a fixed-time plan and a gap-actuated controller run the same traffic side by side." />
+  <meta name="theme-color" content="#2b2e31" />
+</head>
+<body>
+<!--
+THESIS: The intersection is the interface. Controls and readouts are painted in the road's own language (asphalt, thermoplastic white, marking yellow, signal lamps, one green guide sign), and the agent's 71-value state is painted onto the lanes it describes. Refuses the dashboard-beside-a-canvas arrangement.
+OWN-WORLD: Sunlit low-rise city, warm plaster facades, sage lawns. UI slabs are asphalt with aggregate grain, dashed lane-line dividers, white thermoplastic selected states, Overpass (Highway Gothic lineage) and Overpass Mono for measurements.
+STORY: The visitor watches three controllers run identical traffic, switches which one the city shows, opens the agent's view to see what the D3QN sees, and checks the SUMO results board.
+FIRST VIEWPORT: Full-bleed 3D junction from the south-east. Guide sign top-left, controller race left, signal cabinet right, transport bar bottom with play as the primary action.
+FORM: Road-marking world, candidate 7 of 7; seed df86a2cb.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<div class="app" id="app">
+  <canvas class="stage" id="stage" aria-label="3D view of the intersection. Drag to orbit, scroll or pinch to zoom."></canvas>
+
+  <header class="sign" aria-label="Project">
+    <h1>Intelligent Traffic Signal Controller</h1>
+    <p>Dueling Double DQN against fixed-time and actuated signals, on one SUMO intersection rebuilt for the browser.</p>
+  </header>
+
+  <nav class="scenarios slab" aria-label="Demand scenario">
+    <div class="seg" role="radiogroup" aria-label="Scenario" id="scenarioSeg"></div>
+    <p class="scenario-blurb" id="scenarioBlurb"></p>
+  </nav>
+
+  <section class="race slab" aria-labelledby="raceTitle">
+    <div class="slab-head">
+      <h2 id="raceTitle">Same traffic, three controllers</h2>
+      <span class="hint">Pick one to watch</span>
+    </div>
+    <div class="race-rows" id="raceRows" role="radiogroup" aria-label="Controller shown in 3D"></div>
+    <div class="lane-rule" aria-hidden="true"></div>
+    <figure class="chart">
+      <figcaption><span>Waiting time on the approaches (s)</span><span class="mono" id="chartMax"></span></figcaption>
+      <svg id="chart" viewBox="0 0 320 110" preserveAspectRatio="none" role="img" aria-label="Total waiting time over the episode for each controller"></svg>
+    </figure>
+    <p class="fine" id="mirrorNote">Live numbers come from the browser mirror of the SUMO scenario. The SUMO results are on the board.</p>
+  </section>
+
+  <section class="cabinet slab" aria-labelledby="cabTitle">
+    <div class="slab-head">
+      <h2 id="cabTitle">Signal cabinet</h2>
+      <span class="hint" id="cabWho">D3QN</span>
+    </div>
+    <ol class="phases" id="phases" aria-label="Signal program"></ol>
+    <div class="phase-meta"><span id="phaseName">NS green</span><span class="mono" id="phaseTime">0.0 s</span></div>
+
+    <div id="ctlDetail"></div>
+
+    <div class="lane-rule" aria-hidden="true"></div>
+    <div class="state-head">
+      <h3>What the agent sees</h3>
+      <span class="mono hint">71 values</span>
+    </div>
+    <div class="statevec" id="stateVec" aria-label="State vector heat strip"></div>
+    <button class="btn wide" id="agentToggle" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>Paint the state on the road</span>
+    </button>
+  </section>
+
+  <aside class="board slab" id="board" aria-labelledby="boardTitle" hidden>
+    <div class="slab-head">
+      <h2 id="boardTitle">Reported results · SUMO</h2>
+      <button class="icon-btn" id="boardClose" aria-label="Close results">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="fine">Average waiting time in seconds, mean ± std over 3 seeds, 1200 s episodes, D3QN greedy. From REPORT.md and results/logs/evaluation_results.csv.</p>
+    <div id="boardBody"></div>
+  </aside>
+
+  <div class="transport slab" role="group" aria-label="Simulation controls">
+    <button class="play" id="playBtn" aria-label="Pause">
+      <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+      <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5-12-7.5Z"/></svg>
+    </button>
+    <div class="clock">
+      <span class="mono" id="clock">00:00</span>
+      <div class="timeline" id="timeline" aria-hidden="true"><i id="progress"></i><b id="surgeMark" hidden></b></div>
+      <span class="mono dim">60:00</span>
+    </div>
+    <div class="seg small" role="radiogroup" aria-label="Simulation speed" id="speedSeg"></div>
+    <button class="icon-btn" id="restartBtn" aria-label="Restart with new traffic seed" title="Restart with a new seed">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>
+    </button>
+    <span class="vsep" aria-hidden="true"></span>
+    <div class="seg small" role="radiogroup" aria-label="Camera" id="viewSeg"></div>
+    <div class="compass" id="compass" aria-hidden="true" title="North">
+      <svg viewBox="0 0 32 32"><g id="compassNeedle"><path d="M16 9l4.5 8h-9z" fill="currentColor"/><path d="M16 27l4.5-10h-9z" fill="currentColor" opacity=".3"/><text x="16" y="8" text-anchor="middle">N</text></g></svg>
+    </div>
+    <button class="btn" id="boardBtn" aria-expanded="false" aria-controls="board">SUMO results</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="fine">This view needs JavaScript and WebGL.</p></noscript>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
