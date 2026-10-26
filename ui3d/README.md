@@ -70,19 +70,25 @@ slow GPU (by default the view drops AO, then resolution, if frames take over 30 
 `node tools/shoot.mjs` takes desktop and mobile screenshots of the build with local
 Edge or Chrome.
 
-## 3D assets (all CC0)
+## Look and assets
 
-`node tools/fetch-assets.mjs` downloads and repacks them into `src/assets/` with
-gltf-transform and ffmpeg. The packed files are committed, so you only need it to change them.
+The scene is a stylized, toon-shaded New York block at mid-morning. The art direction is
+in `DESIGN.md`.
 
-| Asset | Source |
-|---|---|
-| Cars (sedan, sedan-sports, hatchback, SUV, luxury SUV, taxi, van) | [Kenney Car Kit](https://kenney.nl/assets/car-kit) |
-| Buildings | [Kenney City Kit (Commercial)](https://kenney.nl/assets/city-kit-commercial) |
-| Trees and bushes | [Kenney Nature Kit](https://kenney.nl/assets/nature-kit) |
-| Asphalt (`asphalt_04`), paving (`concrete_pavement_02`) | [Poly Haven](https://polyhaven.com/textures) |
-| Sky and lighting (`kloofendal_48d_partly_cloudy_puresky`) | [Poly Haven](https://polyhaven.com/hdris) |
+Almost everything is procedural:
+- `src/nyc.js` builds the brick and brownstone buildings (fire escapes, water towers,
+  art-deco towers) and the skyline.
+- `src/stylize.js` provides the toon materials, canvas textures, grass, tree canopies and
+  clouds.
+- `src/scene.js` builds the road, park, street props and signals.
 
-Buses, motorcycles with riders, and auto-rickshaws are modelled in code because no CC0
-kit had ones that fit. Car paint colours are swapped per vehicle in the shader, and the
-sun direction is read from the HDRI so shadows match the sky.
+The only external asset is the car set:
+
+| Asset | Source | Licence |
+|---|---|---|
+| Cars (sedan, sports, hatchback, SUV, luxury SUV, taxi, van) | [Kenney Car Kit](https://kenney.nl/assets/car-kit) | CC0 |
+
+`node tools/fetch-assets.mjs` downloads the kit and packs it into `src/assets/cars.glb`
+with gltf-transform. The packed file is committed, so you only need the script to change
+it. Car paint colours are swapped per vehicle in the shader. Buses, motorcycles with
+riders, and autos are modelled in code.

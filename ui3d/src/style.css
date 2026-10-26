@@ -290,7 +290,6 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--marking); 
 .compass .ring { fill: rgba(0, 0, 0, 0.3); stroke: var(--line-2); }
 .compass .n { fill: var(--r); }
 .compass .s { fill: var(--text-3); }
-.compass g { transform-origin: 16px 16px; }
 #boardBtn { border-radius: 999px; }
 
 .toast {
