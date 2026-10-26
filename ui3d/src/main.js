@@ -135,6 +135,12 @@ $('agentToggle').addEventListener('click', () => {
   if (S.agentView) { scene.setView('agent'); setSegValue($('viewSeg'), null); }
 });
 
+$('badgeBtn').addEventListener('click', () => {
+  const on = $('badgeBtn').getAttribute('aria-pressed') !== 'true';
+  $('badgeBtn').setAttribute('aria-pressed', String(on));
+  scene.setSignalBadges(on);
+});
+
 const boardOpen = (open) => {
   $('board').hidden = !open;
   document.querySelector('.cabinet').hidden = open && window.matchMedia('(min-width: 901px)').matches;
@@ -151,6 +157,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === ' ') { e.preventDefault(); $('playBtn').click(); }
   if (['1', '2', '3'].includes(e.key)) pickWatched(CONTROLLERS[Number(e.key) - 1].id);
   if (e.key.toLowerCase() === 'a') $('agentToggle').click();
+  if (e.key.toLowerCase() === 'l') $('badgeBtn').click();
 });
 
 let toastTimer;

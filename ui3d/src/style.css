@@ -290,7 +290,7 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--marking); 
 .compass .ring { fill: rgba(0, 0, 0, 0.3); stroke: var(--line-2); }
 .compass .n { fill: var(--r); }
 .compass .s { fill: var(--text-3); }
-#boardBtn { border-radius: 999px; }
+#boardBtn, #badgeBtn { border-radius: 999px; }
 
 .toast {
   position: fixed; left: 50%; bottom: 96px; transform: translate(-50%, 10px) scale(0.98); z-index: 5;
@@ -342,14 +342,16 @@ button:focus-visible, .stage:focus-visible { outline: 2px solid var(--marking); 
   .seg { overflow-x: auto; scrollbar-width: none; }
   .transport {
     position: fixed; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 4; border-radius: 18px;
-    display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: 'play clock restart board' 'speed speed view view';
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; grid-template-areas: 'play clock restart badge board' 'speed speed view view view';
     gap: 6px 8px; padding: 8px;
   }
   .play { grid-area: play; }
   .clock { grid-area: clock; min-width: 0; }
   #restartBtn { grid-area: restart; }
   #boardBtn { grid-area: board; }
-  #boardBtn span { display: none; }
+  #badgeBtn { grid-area: badge; }
+  #boardBtn span, #badgeBtn span { display: none; }
+  #boardBtn, #badgeBtn { justify-content: center; padding-inline: 12px; }
   #speedSeg { grid-area: speed; }
   #viewSeg { grid-area: view; }
   .timeline { flex: 1 1 auto; width: auto; }

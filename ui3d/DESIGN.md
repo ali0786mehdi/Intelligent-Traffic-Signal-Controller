@@ -96,10 +96,11 @@ own, taken from New York itself.
 | Sky | Gradient shader: `#2f7fd6` zenith → `#79b9ec` → `#e6eef0` horizon, small sun disc. Distance fog `#dfe8ea`. Puffy toon clouds drift east. |
 | Materials | `MeshToonMaterial` with a 4-step ramp (`src/stylize.js`). No PBR, no emissive glow. |
 | Buildings | Procedural (`src/nyc.js`): red, dark and tan brick, cream brick, limestone, brownstone. Cornices, fire escapes, awnings, shopfronts, stoops, wooden water towers, art-deco setback towers, hazy blue skyline. |
-| Street | Canvas-textured asphalt and concrete slabs. High-visibility ladder crosswalks, double yellow centre line, worn paint. Hydrants, cobra-head lamps, newspaper boxes, subway entrance with green globes, orange-and-white steam stack. |
-| Park | Fresh-green swaying grass blades, rounded tree canopies with wind, path, benches, fountain with animated jets, iron fence. |
-| Vehicles | Kenney cars under toon shading, about a third of them yellow cabs. MTA-style buses, motorcycles with riders, and autos are built in code. Brake and indicator lamps are unlit colour. |
-| Signals | Black housings with yellow-edged backplates and green street-name signs. Lenses fade between unlit and lit colours. |
+| Street | Canvas-textured asphalt and concrete slabs. High-visibility ladder crosswalks, double yellow centre line, worn paint. Hydrants, cobra-head lamps and a subway entrance with green globes. Kerbs are kept clear of small props. |
+| Park | Fresh-green swaying grass blades, rounded tree canopies with wind, a paved fountain plaza ringed by benches, fountain with animated jets, iron fence. No trees on the line of sight to the junction. |
+| Vehicles | Kenney cars under toon shading, about a third of them yellow cabs. MTA-style buses, motorcycles with riders, and autos are built in code. Tinted glass with a painted sky streak, a faint warm rim on the body, rounded head and tail lamps, and soft contact-shadow blobs. Paint colours are unchanged. Brake and indicator lamps are unlit colour. |
+| Signals | Black housings with yellow-edged backplates. Lenses fade between unlit and lit colours. Optional screen-sized badges (direction letter, R/Y/G dots, countdown) sit above each overhead head and draw over the scene, toggled with `L`. |
+| Agent overlay | State cells painted on the lanes. Queue is a flat amber strip from the stop line back, one car length (7.5 m) per queued vehicle, under the cars. The count label stays above the stop line at a fixed 4 m. |
 
 What to avoid in the scene: bloom, HDRI reflections, glossy or metal surfaces, purple
 shadows, and over-bright exposure.

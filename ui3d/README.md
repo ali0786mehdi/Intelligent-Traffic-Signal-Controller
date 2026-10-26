@@ -60,8 +60,12 @@ python ui3d/tools/export_weights.py agent/models/dqn_asymmetric.pt dqn_asymmetri
 ## Controls
 
 Drag to orbit, scroll or pinch to zoom. `Space` plays or pauses, `1` `2` `3` choose the
-controller in view, `A` paints the state on the road. The Tour camera slowly circles the
-junction for demos.
+controller in view, `A` paints the state on the road, and `L` (or the Signals button)
+shows or hides a small signal badge above each approach's overhead head, so every
+approach's light and countdown can be read from any angle. In the painted state, each
+lane's queue is an amber strip that grows back from the stop line one car length per
+queued vehicle, with the count shown above the stop line. The Tour camera slowly circles
+the junction for demos.
 
 URL options: `?scenario=hetero` opens a scenario, `?warm=600` fast-forwards the
 simulation 600 s before it starts, and `?q=high` keeps ambient occlusion on even on a

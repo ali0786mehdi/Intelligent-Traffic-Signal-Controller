@@ -8,7 +8,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { LANE_W, STOP, LANE_LEN, IN_LANES } from './sim.js';
-import { mulberry, arcPoints, flatPolygon, extrudedPolygon, atlasCells, dominantCell } from './scene-util.js';
+import { mulberry, arcPoints, flatPolygon, extrudedPolygon, atlasCells, dominantCell, ATLAS_COLS, ATLAS_ROWS } from './scene-util.js';
 import {
   toon, asphaltTex, slabTex, plazaTex, wornAlpha, patchPaint, canopyGeometry, grassGeometry, grassMaterial, cloudGeometry,
 } from './stylize.js';
@@ -45,6 +45,45 @@ function plain(geo) {
   g.setIndex(geo.index ? Array.from(geo.index.array) : [...Array(geo.attributes.position.count).keys()]);
   return g;
 }
+
+// Car body finish on top of the atlas repaint: dark tinted glass with a painted
+// sky streak, and a faint warm rim so bodies read against the asphalt.
+function carFinish(mat, cells) {
+  const rects = cells.filter((c) => c.glass).slice(0, 4).map((c) => new THREE.Vector4(c.col / ATLAS_COLS, c.row / ATLAS_ROWS, (c.col + 1) / ATLAS_COLS, (c.row + 1) / ATLAS_ROWS));
+  while (rects.length < 4) rects.push(new THREE.Vector4(-1, -1, -1, -1));
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey;
+  mat.onBeforeCompile = (sh, r) => {
+    prev?.(sh, r);
+    sh.uniforms.uGlass = { value: rects };
+    sh.vertexShader = 'varying vec3 vObjP;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vObjP = position;');
+    sh.fragmentShader = 'uniform vec4 uGlass[4];\nvarying vec3 vObjP;\nfloat gGlass = 0.0;\n' + sh.fragmentShader
+      .replace('#include <map_fragment>', `#include <map_fragment>
+        for (int i = 0; i < 4; i++) { vec4 g = uGlass[i]; gGlass = max(gGlass, step(g.x, vMapUv.x) * step(vMapUv.x, g.z) * step(g.y, vMapUv.y) * step(vMapUv.y, g.w)); }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        {
+          float up = clamp(normal.y * 0.5 + 0.5, 0.0, 1.0);
+          float f = fract(dot(vObjP, vec3(0.9, 1.4, 0.7)));
+          float band = smoothstep(0.40, 0.47, f) * (1.0 - smoothstep(0.53, 0.62, f));
+          diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.05, 0.08, 0.12), vec3(0.16, 0.25, 0.34), up), gGlass);
+          totalEmissiveRadiance += gGlass * (vec3(0.5, 0.66, 0.8) * band * 0.32 + vec3(0.12, 0.18, 0.25) * up * 0.35);
+          float rim = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);
+          totalEmissiveRadiance += vec3(1.0, 0.96, 0.88) * rim * 0.09 * (1.0 - gGlass);
+        }`);
+  };
+  mat.customProgramCacheKey = () => (prevKey ? prevKey() : '') + '-carfinish';
+  return mat;
+}
+
+function blobTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.55, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+const QPITCH = 7.5, QSLOTS = 20;   // vehicle length 5 m + min gap 2.5 m, queue capped at 20 in the state
+const BLOB = { car: [2.5, 1, 5.0], passenger: [2.5, 1, 5.0], bus: [3.3, 1, 13.4], motorcycle: [1.0, 1, 2.4], auto: [1.9, 1, 3.4] };
 
 export class IntersectionScene {
   constructor(canvas, { quality = 'auto' } = {}) {
@@ -341,35 +380,22 @@ export class IntersectionScene {
   buildPark() {
     const rnd = this.rnd;
     const x0 = FRONT + 0.5, x1 = 175;
-    const path = [];
-    for (let i = 0; i <= 80; i++) {
-      const t = i / 80;
-      path.push([FRONT + 3 + t * 150, FRONT + 6 + Math.sin(t * 3.4) * 15 + t * 80]);
-    }
     const fountain = [62, 52];
-    const nearPath = (x, z, r) => {
-      for (let i = 0; i < path.length - 1; i += 1) {
-        const [ax, az] = path[i], [bx, bz] = path[i + 1];
-        const vx = bx - ax, vz = bz - az, t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / (vx * vx + vz * vz)));
-        if (Math.hypot(x - (ax + vx * t), z - (az + vz * t)) < r) return true;
-      }
-      return false;
-    };
+    // keep a clear corridor (the old walkway line) so trees don't block the overview camera
+    const corridor = [];
+    for (let i = 0; i <= 40; i++) { const t = i / 40; corridor.push([FRONT + 3 + t * 150, FRONT + 6 + Math.sin(t * 3.4) * 15 + t * 80]); }
+    const inCorridor = (x, z, r) => corridor.some(([ax, az], i) => {
+      if (i === corridor.length - 1) return false;
+      const [bx, bz] = corridor[i + 1], vx = bx - ax, vz = bz - az;
+      const t = Math.max(0, Math.min(1, ((x - ax) * vx + (z - az) * vz) / (vx * vx + vz * vz)));
+      return Math.hypot(x - (ax + vx * t), z - (az + vz * t)) < r;
+    });
     // lawn base
     const lawn = new THREE.Mesh(flatPolygon([[x0, x0], [x1, x0], [x1, x1], [x0, x1]], 0.05), toon(C.grass));
     lawn.receiveShadow = true; this.scene.add(lawn);
-    // path + fountain plaza
-    const pathMat = toon('#e7dcc6');
-    const pg = [];
-    for (let i = 0; i < path.length - 1; i++) {
-      const [ax, az] = path[i], [bx, bz] = path[i + 1];
-      const g = new THREE.PlaneGeometry(3.4, Math.hypot(bx - ax, bz - az) + 0.6);
-      g.rotateX(-Math.PI / 2); g.rotateY(Math.atan2(bx - ax, bz - az)); g.translate((ax + bx) / 2, 0.08, (az + bz) / 2);
-      pg.push(g);
-    }
+    // fountain plaza
     const plazaG = new THREE.CircleGeometry(15, 48); plazaG.rotateX(-Math.PI / 2); plazaG.translate(fountain[0], 0.085, fountain[1]);
-    pg.push(plazaG);
-    const pm = new THREE.Mesh(mergeGeometries(pg.map((g) => g.toNonIndexed())), pathMat); pm.receiveShadow = true; this.scene.add(pm);
+    const pm = new THREE.Mesh(plazaG, toon('#e7dcc6')); pm.receiveShadow = true; this.scene.add(pm);
     // fountain
     const stone = toon('#d9cdb5');
     const basin = new THREE.Mesh(new THREE.CylinderGeometry(8, 8.3, 0.8, 48, 1, true), stone); basin.position.set(fountain[0], 0.4, fountain[1]);
@@ -394,24 +420,22 @@ export class IntersectionScene {
     centre.position.set(fountain[0], 2.7, fountain[1]); centre.userData.phase = 0; centre.userData.centre = true;
     this.scene.add(centre); this.jets.push(centre);
 
-    // low black iron fence along both street edges, gap at the path entrance
+    // low black iron fence along both street edges
     const fence = [];
     for (let t = x0 + 1; t < x1; t += 2.4) {
       for (const [fx, fz] of [[t, x0 + 0.4], [x0 + 0.4, t]]) {
-        if (Math.hypot(fx - path[0][0], fz - path[0][1]) < 4) continue;
         fence.push(new THREE.BoxGeometry(fz === x0 + 0.4 ? 2.4 : 0.05, 0.05, fz === x0 + 0.4 ? 0.05 : 2.4).translate(fx, 0.95, fz));
         fence.push(new THREE.BoxGeometry(0.06, 1.0, 0.06).translate(fx, 0.5, fz));
       }
     }
     const fm = new THREE.Mesh(mergeGeometries(fence.map((g) => g.toNonIndexed())), toon('#24272a')); fm.castShadow = true; this.scene.add(fm);
 
-    // benches along the path
+    // benches on the plaza, facing the fountain
     const benchG = mergeGeometries([new THREE.BoxGeometry(2, 0.08, 0.5).translate(0, 0.45, 0), new THREE.BoxGeometry(2, 0.5, 0.06).translate(0, 0.75, -0.25), new THREE.BoxGeometry(0.08, 0.45, 0.45).translate(-0.9, 0.22, 0), new THREE.BoxGeometry(0.08, 0.45, 0.45).translate(0.9, 0.22, 0)].map((g) => g.toNonIndexed()));
     const benches = [];
-    for (let i = 6; i < path.length - 4; i += 9) {
-      const [ax, az] = path[i], [bx, bz] = path[i + 1];
-      const a = Math.atan2(bx - ax, bz - az);
-      benches.push(new THREE.Matrix4().makeRotationY(a + Math.PI / 2).setPosition(ax + Math.cos(a) * 2.6, 0.06, az - Math.sin(a) * 2.6));
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + 0.5;
+      benches.push(new THREE.Matrix4().makeRotationY(Math.atan2(-Math.cos(a), -Math.sin(a))).setPosition(fountain[0] + Math.cos(a) * 12.5, 0.08, fountain[1] + Math.sin(a) * 12.5));
     }
     const bm = new THREE.InstancedMesh(benchG, toon('#4f6a3d'), benches.length);
     benches.forEach((m, i) => bm.setMatrixAt(i, m)); bm.castShadow = true; this.scene.add(bm);
@@ -425,7 +449,6 @@ export class IntersectionScene {
         if (rnd() > keep) continue;
         const jx = x + (rnd() - 0.5) * 0.24, jz = z + (rnd() - 0.5) * 0.24;
         if (Math.hypot(jx - fountain[0], jz - fountain[1]) < 15.5) continue;
-        if (nearPath(jx, jz, 2.0)) continue;
         pts.push([jx, jz, dist < 90 ? 1 : 1.25]);
       }
     }
@@ -439,7 +462,10 @@ export class IntersectionScene {
     const trees = [];
     for (let i = 0; i < 70; i++) {
       const x = x0 + 6 + rnd() * (x1 - x0 - 10), z = x0 + 6 + rnd() * (x1 - x0 - 10);
-      if (Math.hypot(x - fountain[0], z - fountain[1]) < 19 || nearPath(x, z, 4.5)) continue;
+      // also keep the tour camera's line of sight to the junction clear
+      const [tx, tz] = this.views.tour.pos.filter((_, i) => i !== 1), k = Math.max(0, Math.min(1, (x * tx + z * tz) / (tx * tx + tz * tz)));
+      const sight = Math.hypot(x - tx * k, z - tz * k) < 9;
+      if (Math.hypot(x - fountain[0], z - fountain[1]) < 19 || inCorridor(x, z, 6) || sight) continue;
       trees.push([x, z, 1.0 + rnd() * 0.55]);
     }
     for (const [sx, sz] of [[1, 1], [-1, 1], [-1, -1], [1, -1]]) {
@@ -520,18 +546,6 @@ export class IntersectionScene {
     for (const [sx, sz] of quads.slice(0, 2)) { m4.makeTranslation(sx * (W + 1.2), 0.18, sz * 60); hm.setMatrixAt(k++, m4); }
     hm.count = k; hm.castShadow = true; this.scene.add(hm);
 
-    // trash cans and newspaper boxes near the corners
-    const can = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.32, 0.28, 0.9, 12).translate(0, 0.45, 0), toon('#3b5e3f'), 8);
-    const box = new THREE.InstancedMesh(new RoundedBoxGeometry(0.55, 1.05, 0.5, 2, 0.05).translate(0, 0.52, 0), toon('#2c6fb3'), 8);
-    let c1 = 0, c2 = 0;
-    for (const [sx, sz] of quads) {
-      m4.makeTranslation(sx * (FRONT - 3.2), 0.18, sz * (W + 1.0)); can.setMatrixAt(c1++, m4);
-      m4.makeTranslation(sx * (W + 1.0), 0.18, sz * (FRONT + 1.5)); box.setMatrixAt(c2++, m4);
-      m4.makeTranslation(sx * (W + 1.0), 0.18, sz * (FRONT + 2.3)); box.setMatrixAt(c2++, m4);
-    }
-    can.count = c1; box.count = c2;
-    for (const im of [can, box]) { im.castShadow = true; this.scene.add(im); }
-
     // subway entrance on the north-west corner: green globes, railings, stairs down
     const sub = new THREE.Group();
     const rail = toon('#1f4a35');
@@ -549,23 +563,6 @@ export class IntersectionScene {
     sub.position.set(-(FRONT - 1.9), 0.19, -(FRONT + 23.5));
     this.scene.add(sub);
 
-    // steam stack in the south-west roadway, with rising puffs
-    const stack = new THREE.Group();
-    for (let i = 0; i < 5; i++) {
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.42 - i * 0.04, 0.46 - i * 0.04, 0.5, 16), toon(i % 2 ? '#f4f1ea' : '#f07a2a'));
-      band.position.y = 0.25 + i * 0.5; stack.add(band);
-    }
-    stack.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    stack.position.set(-26, 0, 0.05);
-    this.scene.add(stack);
-    const puffMat = toon('#f3f5f6', { transparent: true, opacity: 0.85, depthWrite: false });
-    const puffGeo = new THREE.IcosahedronGeometry(1, 2);
-    this.steam = [];
-    for (let i = 0; i < 18; i++) {
-      const p = new THREE.Mesh(puffGeo, puffMat.clone());
-      p.userData = { t: i / 18, x: -26, z: 0.05 };
-      this.scene.add(p); this.steam.push(p);
-    }
   }
 
   // -------------------------------------------------------------- signals
@@ -621,18 +618,76 @@ export class IntersectionScene {
       arm.rotation.z = Math.PI / 2; arm.position.set(armLen / 2, 6.2, 0);
       const h1 = head(d, false); h1.position.set(armLen - 0.1, 5.35, 0);
       const h2 = head(d, true); h2.position.set(0, 3.3, -0.36);
-      // street name sign on the mast arm, NYC green
-      const sign = new THREE.Mesh(new RoundedBoxGeometry(2.2, 0.42, 0.05, 2, 0.04), toon('#1f6b45'));
-      sign.position.set(armLen * 0.45, 6.75, 0);
-      grp.add(pole, foot, arm, h1, h2, sign);
+      grp.add(pole, foot, arm, h1, h2);
       grp.traverse((o) => { if (o.isMesh) o.castShadow = true; });
       this.scene.add(grp);
+    }
+    this.buildSignalBadges();
+  }
+
+  // Floating badge over each approach: direction, the three lamps, and the
+  // countdown when the controller has one. Constant screen size, drawn on top of
+  // buildings so every approach can be read from any camera angle.
+  buildSignalBadges() {
+    this.badges = {};
+    this.badgesOn = true;
+    this.badgeFade = 1;
+    for (const d of ['N', 'E', 'S', 'W']) {
+      const u = U[d], dir = [-u[0], -u[1]], r = right(dir);
+      const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96;
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, sizeAttenuation: false, depthTest: false, depthWrite: false, transparent: true, fog: false }));
+      sp.center.set(0.5, 0);
+      sp.scale.set(0.068, 0.0255, 1);
+      // just above the overhead head on this approach's far-side mast arm
+      const lat = LANE_W * 0.9;
+      sp.position.set(-u[0] * (STOP + 1.4) + r[0] * lat, 7.2, -u[1] * (STOP + 1.4) + r[1] * lat);
+      sp.renderOrder = 6;
+      this.scene.add(sp);
+      this.badges[d] = { sp, cv, tex, last: '' };
+    }
+  }
+
+  setSignalBadges(on) { this.badgesOn = on; if (on) for (const b of Object.values(this.badges)) b.sp.visible = true; }
+
+  updateSignalBadges(dt) {
+    if (!this.badges) return;
+    this.badgeFade += ((this.badgesOn ? 1 : 0) - this.badgeFade) * (1 - Math.exp(-dt * 8));
+    const ON = { R: '#ff5547', Y: '#ffb21a', G: '#2fe08a' }, OFF = { R: '#3a1d1b', Y: '#3a2d14', G: '#173326' };
+    for (const d of ['N', 'E', 'S', 'W']) {
+      const b = this.badges[d];
+      b.sp.material.opacity = this.badgeFade;
+      b.sp.visible = this.badgeFade > 0.01;
+      if (!b.sp.visible) continue;
+      const st = this.signalStates?.[d] || 'R';
+      const n = this.remaining?.[d];
+      const txt = n == null ? '' : String(Math.max(0, Math.ceil(n)));
+      const key = st + txt;
+      if (key === b.last) continue;
+      b.last = key;
+      const g = b.cv.getContext('2d');
+      g.clearRect(0, 0, 256, 96);
+      const w = txt ? 236 : 184, x0 = (256 - w) / 2;
+      g.fillStyle = 'rgba(17,18,20,0.9)'; g.beginPath(); g.roundRect(x0, 6, w, 76, 38); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 2; g.stroke();
+      g.fillStyle = '#f3f3f1'; g.font = '600 34px "Geist Sans", system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(d, x0 + 38, 45);
+      ['R', 'Y', 'G'].forEach((k, i) => {
+        g.fillStyle = st === k ? ON[k] : OFF[k];
+        g.beginPath(); g.arc(x0 + 82 + i * 36, 44, 13, 0, Math.PI * 2); g.fill();
+      });
+      if (txt) { g.fillStyle = ON[st]; g.font = '600 30px "Geist Mono", ui-monospace, monospace'; g.fillText(txt, x0 + 200, 45); }
+      // pointer
+      g.fillStyle = 'rgba(17,18,20,0.9)'; g.beginPath(); g.moveTo(118, 81); g.lineTo(128, 94); g.lineTo(138, 81); g.fill();
+      b.tex.needsUpdate = true;
     }
   }
 
   setSignals(states) { this.signalStates = states; }
 
   setCountdowns(remaining) {
+    this.remaining = remaining;
     for (const d of ['N', 'E', 'S', 'W']) {
       const c = this.countdowns[d];
       if (!c) continue;
@@ -681,15 +736,15 @@ export class IntersectionScene {
       body.computeBoundingBox();
       const b = body.boundingBox;
       const len = b.max.z - b.min.z, wid = b.max.x - b.min.x;
-      const scale = new THREE.Vector3(1.8 / wid, 1.22, 4.3 / len);
+      const scale = new THREE.Vector3(1.3, 1.35, 1.55);   // keep Kenney's chunky proportions
       const paintCell = name === 'taxi' ? null : dominantCell(body, cells);
-      const mat = patchPaint(toon('#ffffff', { map: atlas }), paintCell, 'instanced');
+      const mat = carFinish(patchPaint(toon('#ffffff', { map: atlas }), paintCell, 'instanced'), cells);
       const max = 160;
       body.setAttribute('aPaint', new THREE.InstancedBufferAttribute(new Float32Array(max * 3).fill(-1), 3));
       const bodyIM = new THREE.InstancedMesh(body, mat, max);
       const wheelMat = toon('#ffffff', { map: atlas });
       const wheelIMs = wheels.map((w) => new THREE.InstancedMesh(w.geo, wheelMat, max));
-      const lights = new THREE.InstancedMesh(new THREE.BoxGeometry(0.3, 0.12, 0.05), tail, max * 4);
+      const lights = new THREE.InstancedMesh(new RoundedBoxGeometry(0.34, 0.14, 0.06, 1, 0.025), tail, max * 6);
       for (const im of [bodyIM, ...wheelIMs, lights]) { im.count = 0; im.frustumCulled = false; im.castShadow = im !== lights; im.receiveShadow = true; this.scene.add(im); }
       lights.setColorAt(0, new THREE.Color(0, 0, 0));
       this.cars.push({
@@ -698,6 +753,11 @@ export class IntersectionScene {
       });
     }
     this.buildOtherVehicles();
+    const blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    this.blobs = new THREE.InstancedMesh(blobGeo, new THREE.MeshBasicMaterial({ color: '#1b2a33', alphaMap: blobTexture(), transparent: true, opacity: 0.42, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), 1800);
+    this.blobs.count = 0; this.blobs.frustumCulled = false; this.blobs.renderOrder = 1;
+    this.scene.add(this.blobs);
+    this._bq = new THREE.Quaternion(); this._bp = new THREE.Vector3(); this._bs = new THREE.Vector3();
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._p = new THREE.Vector3(); this._s = new THREE.Vector3(1, 1, 1);
     this._c = new THREE.Color(); this._e = new THREE.Euler(0, 0, 0, 'YXZ'); this._w = new THREE.Matrix4(); this._r = new THREE.Matrix4(); this._sm = new THREE.Matrix4(); this._v = new THREE.Vector3();
   }
@@ -759,6 +819,8 @@ export class IntersectionScene {
     const counts = new Map(), lightCounts = new Map();
     for (const c of this.cars) { counts.set(c, 0); lightCounts.set(c, 0); }
     const oc = { bus: 0, motorcycle: 0, auto: 0 };
+    let nb = 0;
+    const HEAD = [1, 0.95, 0.8];
     const m = this._m, q = this._q, p = this._p;
     const BRAKE_ON = [1, 0.16, 0.1], BRAKE_OFF = [0.42, 0.05, 0.04], IND = [1, 0.62, 0.08];
     for (const v of sim.vehicles) {
@@ -775,6 +837,10 @@ export class IntersectionScene {
       const braking = v.acc < -0.6 || v.v < 0.1;
       const turning = v.move !== 'T' && (v.seg === 1 || (v.seg === 0 && LANE_LEN - v.s < 70));
       p.set(x, 0, z);
+      if (nb < this.blobs.instanceMatrix.count) {
+        this._bq.setFromAxisAngle(this._bp.set(0, 1, 0), h);
+        this.blobs.setMatrixAt(nb++, m.compose(this._bp.set(x, 0.035, z), this._bq, this._bs.fromArray(BLOB[v.type] || BLOB.car)));
+      }
       this._e.set(st.pitch, h, st.roll, 'YXZ'); q.setFromEuler(this._e);
       const bc = braking ? BRAKE_ON : BRAKE_OFF;
 
@@ -805,6 +871,10 @@ export class IntersectionScene {
           if (on) { const lp = this._v.set(side * (car.halfW + 0.12), car.lightY + 0.02, z0).applyQuaternion(q).add(p); m.compose(lp, q, this._s); } else m.makeScale(0, 0, 0);
           car.lights.setMatrixAt(li, m); car.lights.setColorAt(li, this._c.setRGB(...IND)); li++;
         }
+        for (const sx of [-1, 1]) {
+          const lp = this._v.set(sx * (car.halfW - 0.04), car.lightY, car.frontZ).applyQuaternion(q).add(p);
+          m.compose(lp, q, this._s); car.lights.setMatrixAt(li, m); car.lights.setColorAt(li, this._c.setRGB(...HEAD)); li++;
+        }
         lightCounts.set(car, li);
       } else {
         const t = this.others[v.type];
@@ -834,6 +904,7 @@ export class IntersectionScene {
       im.count = oc[type]; im.instanceMatrix.needsUpdate = true;
       if (im.instanceColor) im.instanceColor.needsUpdate = true;
     }
+    this.blobs.count = nb; this.blobs.instanceMatrix.needsUpdate = true;
     if (this.vis.size > seen.size + 200) for (const id of this.vis.keys()) if (!seen.has(id)) this.vis.delete(id);
   }
 
@@ -868,19 +939,24 @@ export class IntersectionScene {
         this.overlay.add(mesh, edges);
         this.cells[li * 3 + c] = mesh;
       }
-      const pillar = new THREE.Mesh(new RoundedBoxGeometry(LANE_W - 0.8, 1, 1.6, 2, 0.12).translate(0, 0.5, 0), new THREE.MeshBasicMaterial({ color: '#f4c15d', transparent: true, opacity: 0.92 }));
-      pillar.position.set(u[0] * (STOP + 2.2) + r[0] * off, 0.05, u[1] * (STOP + 2.2) + r[1] * off);
-      pillar.rotation.y = Math.atan2(dir[0], dir[1]);
-      pillar.scale.y = 0.01;
-      this.overlay.add(pillar);
+      // queue: one amber strip from the stop line back, growing one car length (7.5 m) per queued vehicle
+      const lane = { u, r, off, rot: Math.atan2(u[0], u[1]) };
       const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
       const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, fog: false }));
       sprite.scale.set(6, 3, 1); sprite.renderOrder = 5;
       this.overlay.add(sprite);
-      this.pillars[li] = { pillar, sprite, cv, tex, last: -1, base: pillar.position.clone() };
+      // fixed at the height the old pillar label had with two cars queued (2 x 0.9 m + 2.2 m)
+      sprite.position.set(u[0] * (STOP + 2.2) + r[0] * off, 4.0, u[1] * (STOP + 2.2) + r[1] * off);
+      this.pillars[li] = { lane, sprite, cv, tex, last: -1, tail: 0 };
     });
+    const strip = new THREE.PlaneGeometry(LANE_W - 0.45, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5);
+    this.queueSlots = new THREE.InstancedMesh(strip,
+      new THREE.MeshBasicMaterial({ color: '#f4c15d', transparent: true, opacity: 0, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }), 8);
+    this.queueSlots.renderOrder = 3; this.queueSlots.frustumCulled = false;
+    this.overlay.add(this.queueSlots);
     this.scene.add(this.overlay);
+    this._qq = new THREE.Quaternion(); this._qa = new THREE.Vector3(0, 1, 0); this._qm = new THREE.Matrix4(); this._qp = new THREE.Vector3(); this._qs = new THREE.Vector3();
     this.slow = new THREE.Color('#ff7a52'); this.fast = new THREE.Color('#5ce1cf');
   }
 
@@ -892,6 +968,7 @@ export class IntersectionScene {
     if (!state) return;
     const f = this.overlayFade;
     this.overlayLine.opacity = 0.55 * f;
+    this.queueSlots.material.opacity = 0.62 * f;
     for (let li = 0; li < 8; li++) {
       for (let c = 0; c < 3; c++) {
         const m = this.cells[li * 3 + c];
@@ -901,9 +978,12 @@ export class IntersectionScene {
       }
       const q = Math.round(state[48 + li] * 20);
       const P = this.pillars[li];
-      P.pillar.scale.y += (Math.max(0.01, q * 0.9 * f) - P.pillar.scale.y) * 0.2;
-      P.pillar.material.opacity = 0.92 * f;
-      P.sprite.position.set(P.base.x, P.pillar.scale.y + 2.2, P.base.z);
+      const L2 = P.lane;
+      P.tail += (Math.min(q, QSLOTS) - P.tail) * Math.min(1, dt * 5);
+      const len = Math.max(0.0001, P.tail * QPITCH - 0.4);
+      this._qq.setFromAxisAngle(this._qa, L2.rot);
+      this._qm.compose(this._qp.set(L2.u[0] * (STOP + 0.4) + L2.r[0] * L2.off, 0.075, L2.u[1] * (STOP + 0.4) + L2.r[1] * L2.off), this._qq, this._qs.set(1, 1, len));
+      this.queueSlots.setMatrixAt(li, this._qm);
       P.sprite.visible = q > 0;
       P.sprite.material.opacity = f;
       if (q !== P.last) {
@@ -916,21 +996,13 @@ export class IntersectionScene {
         P.tex.needsUpdate = true;
       }
     }
+    this.queueSlots.instanceMatrix.needsUpdate = true;
   }
 
   // ----------------------------------------------------------- ambience
   animateAmbience(dt) {
     const t = this.time.value;
     for (const c of this.clouds) { c.position.x += dt * 2.2; if (c.position.x > 1400) c.position.x = -1400; }
-    for (const p of this.steam) {
-      const u = p.userData;
-      u.t = (u.t + dt * 0.16) % 1;
-      const k = u.t;
-      p.position.set(u.x + Math.sin(k * 5 + u.x) * 0.6 + k * 3, 2.6 + k * 9, u.z + k * 1.5);
-      const s = 0.45 + k * 2.1;
-      p.scale.set(s, s * 0.85, s);
-      p.material.opacity = 0.85 * (1 - k) * Math.min(1, k * 8);
-    }
     for (const j of this.jets) {
       const h = j.userData.centre ? 2.6 + Math.sin(t * 3) * 0.3 : 1.4 + Math.sin(t * 2.4 + j.userData.phase) * 0.5;
       j.scale.y = h;
@@ -986,6 +1058,7 @@ export class IntersectionScene {
     }
     this.controls.update();
     this.animateSignals(dt);
+    this.updateSignalBadges(dt);
     this.animateAmbience(dt);
     this.adaptQuality(dt);
     this.renderer.render(this.scene, this.camera);
