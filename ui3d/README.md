@@ -60,7 +60,29 @@ python ui3d/tools/export_weights.py agent/models/dqn_asymmetric.pt dqn_asymmetri
 ## Controls
 
 Drag to orbit, scroll or pinch to zoom. `Space` plays or pauses, `1` `2` `3` choose the
-controller in view, `A` paints the state on the road.
+controller in view, `A` paints the state on the road. The Tour camera slowly circles the
+junction for demos.
+
+URL options: `?scenario=hetero` opens a scenario, `?warm=600` fast-forwards the
+simulation 600 s before it starts, and `?q=high` keeps ambient occlusion on even on a
+slow GPU (by default the view drops AO, then resolution, if frames take over 30 ms).
 
 `node tools/shoot.mjs` takes desktop and mobile screenshots of the build with local
 Edge or Chrome.
+
+## 3D assets (all CC0)
+
+`node tools/fetch-assets.mjs` downloads and repacks them into `src/assets/` with
+gltf-transform and ffmpeg. The packed files are committed, so you only need it to change them.
+
+| Asset | Source |
+|---|---|
+| Cars (sedan, sedan-sports, hatchback, SUV, luxury SUV, taxi, van) | [Kenney Car Kit](https://kenney.nl/assets/car-kit) |
+| Buildings | [Kenney City Kit (Commercial)](https://kenney.nl/assets/city-kit-commercial) |
+| Trees and bushes | [Kenney Nature Kit](https://kenney.nl/assets/nature-kit) |
+| Asphalt (`asphalt_04`), paving (`concrete_pavement_02`) | [Poly Haven](https://polyhaven.com/textures) |
+| Sky and lighting (`kloofendal_48d_partly_cloudy_puresky`) | [Poly Haven](https://polyhaven.com/hdris) |
+
+Buses, motorcycles with riders, and auto-rickshaws are modelled in code because no CC0
+kit had ones that fit. Car paint colours are swapped per vehicle in the shader, and the
+sun direction is read from the HDRI so shadows match the sky.

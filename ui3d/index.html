@@ -5,69 +5,81 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Intelligent Traffic Signal Controller · 3D</title>
   <meta name="description" content="A daytime 3D intersection where a Dueling Double DQN, a fixed-time plan and a gap-actuated controller run the same traffic side by side." />
-  <meta name="theme-color" content="#2b2e31" />
+  <meta name="theme-color" content="#111214" />
+  <meta name="design-seed" content="df86a2cb" />
 </head>
 <body>
 <!--
-THESIS: The intersection is the interface. Controls and readouts are painted in the road's own language (asphalt, thermoplastic white, marking yellow, signal lamps, one green guide sign), and the agent's 71-value state is painted onto the lanes it describes. Refuses the dashboard-beside-a-canvas arrangement.
-OWN-WORLD: Sunlit low-rise city, warm plaster facades, sage lawns. UI slabs are asphalt with aggregate grain, dashed lane-line dividers, white thermoplastic selected states, Overpass (Highway Gothic lineage) and Overpass Mono for measurements.
+THESIS: The intersection is the interface. A sunlit, physically lit junction fills the screen; charcoal instrument panels float over it and read like a signal controller's front panel, never a dashboard bolted beside a canvas. The agent's 71-value state is painted onto the lanes it describes.
+OWN-WORLD: Kenney CC0 city and cars under a Poly Haven sky, photographic asphalt and paving, glowing LED signal heads with countdown timers. Panels are smoked charcoal (#111214 at 86%) with hairline edges, Geist for words, Geist Mono for every measurement, controller colours coral / amber / aqua, marking yellow for focus.
 STORY: The visitor watches three controllers run identical traffic, switches which one the city shows, opens the agent's view to see what the D3QN sees, and checks the SUMO results board.
-FIRST VIEWPORT: Full-bleed 3D junction from the south-east. Guide sign top-left, controller race left, signal cabinet right, transport bar bottom with play as the primary action.
-FORM: Road-marking world, candidate 7 of 7; seed df86a2cb.
+FIRST VIEWPORT: Full-bleed 3D junction. Brand + scenario panel top-left, controller race below it, signal cabinet right, transport bar bottom centre with play as the primary action.
+FORM: Road-marking world, refined to a charcoal instrument finish; candidate 7 of 7; seed df86a2cb.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
 -->
 <div class="app" id="app">
-  <canvas class="stage" id="stage" aria-label="3D view of the intersection. Drag to orbit, scroll or pinch to zoom."></canvas>
+  <canvas class="stage" id="stage" aria-label="3D view of the intersection. Drag to orbit, scroll to zoom."></canvas>
 
-  <header class="sign" aria-label="Project">
-    <h1>Intelligent Traffic Signal Controller</h1>
-    <p>Dueling Double DQN against fixed-time and actuated signals, on one SUMO intersection rebuilt for the browser.</p>
-  </header>
-
-  <nav class="scenarios slab" aria-label="Demand scenario">
-    <div class="seg" role="radiogroup" aria-label="Scenario" id="scenarioSeg"></div>
+  <section class="brand panel" aria-labelledby="appTitle">
+    <header class="brand-head">
+      <svg class="mark" viewBox="0 0 20 44" aria-hidden="true">
+        <rect x="1" y="1" width="18" height="42" rx="6" />
+        <circle id="markR" cx="10" cy="10" r="4.2" />
+        <circle id="markY" cx="10" cy="22" r="4.2" />
+        <circle id="markG" cx="10" cy="34" r="4.2" />
+      </svg>
+      <div>
+        <h1 id="appTitle">Intelligent Traffic Signal Controller</h1>
+        <p>D3QN vs fixed-time and actuated control on one SUMO intersection</p>
+      </div>
+    </header>
+    <div class="seg" role="radiogroup" aria-label="Demand scenario" id="scenarioSeg"></div>
     <p class="scenario-blurb" id="scenarioBlurb"></p>
-  </nav>
-
-  <section class="race slab" aria-labelledby="raceTitle">
-    <div class="slab-head">
-      <h2 id="raceTitle">Same traffic, three controllers</h2>
-      <span class="hint">Pick one to watch</span>
-    </div>
-    <div class="race-rows" id="raceRows" role="radiogroup" aria-label="Controller shown in 3D"></div>
-    <div class="lane-rule" aria-hidden="true"></div>
-    <figure class="chart">
-      <figcaption><span>Waiting time on the approaches (s)</span><span class="mono" id="chartMax"></span></figcaption>
-      <svg id="chart" viewBox="0 0 320 110" preserveAspectRatio="none" role="img" aria-label="Total waiting time over the episode for each controller"></svg>
-    </figure>
-    <p class="fine" id="mirrorNote">Live numbers come from the browser mirror of the SUMO scenario. The SUMO results are on the board.</p>
   </section>
 
-  <section class="cabinet slab" aria-labelledby="cabTitle">
-    <div class="slab-head">
-      <h2 id="cabTitle">Signal cabinet</h2>
-      <span class="hint" id="cabWho">D3QN</span>
+  <section class="race panel" aria-labelledby="raceTitle">
+    <div class="panel-head">
+      <h2 id="raceTitle">Same traffic, three controllers</h2>
+      <span class="hint">Select to watch</span>
     </div>
-    <ol class="phases" id="phases" aria-label="Signal program"></ol>
-    <div class="phase-meta"><span id="phaseName">NS green</span><span class="mono" id="phaseTime">0.0 s</span></div>
+    <div class="race-rows" id="raceRows" role="radiogroup" aria-label="Controller shown in 3D"></div>
+    <figure class="chart">
+      <figcaption><span>Waiting time on the approaches</span><span class="mono" id="chartMax"></span></figcaption>
+      <svg id="chart" viewBox="0 0 320 120" preserveAspectRatio="none" role="img" aria-label="Total waiting time over the episode for each controller"></svg>
+    </figure>
+    <p class="fine">Live numbers come from the browser mirror of the SUMO scenario. The reported SUMO results are on the results board.</p>
+  </section>
 
-    <div id="ctlDetail"></div>
+  <section class="cabinet panel" aria-labelledby="cabTitle">
+    <div class="panel-head">
+      <h2 id="cabTitle">Signal cabinet</h2>
+      <span class="pill" id="cabWho"><i></i><span>D3QN</span></span>
+    </div>
+    <div class="phase-now">
+      <span class="lamp" id="lamp" aria-hidden="true"></span>
+      <div class="phase-text"><b id="phaseName">NS green</b><span id="phaseSub">Phase 1 of 6</span></div>
+      <span class="phase-time mono" id="phaseTime">0.0<small>s</small></span>
+    </div>
+    <ol class="program" id="phases" aria-label="Signal program"></ol>
 
-    <div class="lane-rule" aria-hidden="true"></div>
-    <div class="state-head">
+    <div id="ctlDetail" class="ctl-detail"></div>
+
+    <div class="divider" aria-hidden="true"></div>
+    <div class="sub-head">
       <h3>What the agent sees</h3>
-      <span class="mono hint">71 values</span>
+      <span class="hint mono">71 inputs</span>
     </div>
     <div class="statevec" id="stateVec" aria-label="State vector heat strip"></div>
     <button class="btn wide" id="agentToggle" aria-pressed="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
       <span>Paint the state on the road</span>
+      <kbd>A</kbd>
     </button>
   </section>
 
-  <aside class="board slab" id="board" aria-labelledby="boardTitle" hidden>
-    <div class="slab-head">
-      <h2 id="boardTitle">Reported results · SUMO</h2>
+  <aside class="board panel" id="board" aria-labelledby="boardTitle" hidden>
+    <div class="panel-head">
+      <h2 id="boardTitle">Reported results, SUMO</h2>
       <button class="icon-btn" id="boardClose" aria-label="Close results">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
@@ -76,10 +88,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div id="boardBody"></div>
   </aside>
 
-  <div class="transport slab" role="group" aria-label="Simulation controls">
+  <div class="transport panel" role="group" aria-label="Simulation controls">
     <button class="play" id="playBtn" aria-label="Pause">
-      <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
-      <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5-12-7.5Z"/></svg>
+      <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5v13M15.5 5.5v13"/></svg>
+      <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19 12 8 5.2Z"/></svg>
     </button>
     <div class="clock">
       <span class="mono" id="clock">00:00</span>
@@ -93,9 +105,19 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <span class="vsep" aria-hidden="true"></span>
     <div class="seg small" role="radiogroup" aria-label="Camera" id="viewSeg"></div>
     <div class="compass" id="compass" aria-hidden="true" title="North">
-      <svg viewBox="0 0 32 32"><g id="compassNeedle"><path d="M16 9l4.5 8h-9z" fill="currentColor"/><path d="M16 27l4.5-10h-9z" fill="currentColor" opacity=".3"/><text x="16" y="8" text-anchor="middle">N</text></g></svg>
+      <svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" class="ring"/><g id="compassNeedle"><path d="M16 8l3.6 8h-7.2z" class="n"/><path d="M16 24l3.6-8h-7.2z" class="s"/></g></svg>
     </div>
-    <button class="btn" id="boardBtn" aria-expanded="false" aria-controls="board">SUMO results</button>
+    <button class="btn" id="boardBtn" aria-expanded="false" aria-controls="board">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7"/></svg>
+      <span>SUMO results</span>
+    </button>
+  </div>
+
+  <div class="loader" id="loader" role="status" aria-live="polite">
+    <div class="loader-card">
+      <svg class="mark big" viewBox="0 0 20 44" aria-hidden="true"><rect x="1" y="1" width="18" height="42" rx="6" /><circle cx="10" cy="10" r="4.2" class="l1"/><circle cx="10" cy="22" r="4.2" class="l2"/><circle cx="10" cy="34" r="4.2" class="l3"/></svg>
+      <p id="loaderText">Building the junction</p>
+    </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
