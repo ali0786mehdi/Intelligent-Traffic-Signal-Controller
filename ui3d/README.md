@@ -81,7 +81,7 @@ in `DESIGN.md`.
 
 Almost everything is procedural:
 - `src/nyc.js` builds the brick and brownstone buildings (fire escapes, water towers,
-  art-deco towers), modern glass office towers and the skyline.
+  art-deco towers) and the skyline.
 - `src/stylize.js` provides the toon materials, canvas textures, grass, tree canopies and
   clouds.
 - `src/scene.js` builds the road, park, street props and signals.

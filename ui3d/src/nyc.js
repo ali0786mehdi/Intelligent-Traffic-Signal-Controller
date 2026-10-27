@@ -4,7 +4,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { toon } from './stylize.js';
-import { mulberry } from './scene-util.js';
 
 const BAY = 3.2, STOREY = 3.4, SHOP = 4.4;
 
@@ -43,21 +42,6 @@ function facadeTex(wall, { mortar = true, frame = '#efe8d8', glass = '#3f5c74', 
   });
 }
 
-// Curtain wall for modern towers: one tile = 2 bays x 2 storeys, glass with mullions and spandrel bands.
-function curtainTex(glass, mullion, spandrel, rnd) {
-  return canvasTex(256, 256, (g, W, H) => {
-    for (let r = 0; r < 2; r++) {
-      const y = r * 128;
-      g.fillStyle = glass; g.fillRect(0, y, W, 128);
-      g.fillStyle = 'rgba(214,232,244,0.22)'; g.fillRect(0, y + 30, W, 40);                    // sky reflection band
-      for (let c = 0; c < 8; c++) if (rnd() < 0.18) { g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(c * 32, y + 26, 32, 102); } // blinds
-      g.fillStyle = spandrel; g.fillRect(0, y, W, 26);
-      g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, y + 24, W, 2);
-    }
-    g.fillStyle = mullion; for (let x = 0; x < W; x += 32) g.fillRect(x, 0, 3, H);
-  });
-}
-
 function shopTex(sign, rnd) {
   return canvasTex(256, 176, (g, W, H) => {
     g.fillStyle = '#2b2d31'; g.fillRect(0, 0, W, H);
@@ -90,44 +74,32 @@ export class NYCBuilder {
     this.rnd = rnd;
     this.batches = new Map(); // material -> geometries
     const R = rnd;
-    // Extra looks draw from their own seed so the main seeded layout (and every building's colour) stays put.
-    const R2 = this.rnd2 = mulberry(1337);
     this.styles = {
-      redBrick: toon('#ffffff', { map: facadeTex('#a8705f', { rnd: R, lintel: '#e4dccb' }) }),
-      darkBrick: toon('#ffffff', { map: facadeTex('#85625a', { rnd: R, lintel: '#d8cfbe' }) }),
-      tanBrick: toon('#ffffff', { map: facadeTex('#c4a587', { rnd: R, frame: '#f4eee2', lintel: '#8c6a52' }) }),
+      redBrick: toon('#ffffff', { map: facadeTex('#a6553f', { rnd: R, lintel: '#e6dcc6' }) }),
+      darkBrick: toon('#ffffff', { map: facadeTex('#7f4636', { rnd: R, lintel: '#d9ccb2' }) }),
+      tanBrick: toon('#ffffff', { map: facadeTex('#c98d5e', { rnd: R, frame: '#f4eee2', lintel: '#8f5b3c' }) }),
       creamBrick: toon('#ffffff', { map: facadeTex('#e3d3b4', { rnd: R, frame: '#3b4a57', glass: '#35556d', lintel: '#b9a27e' }) }),
       limestone: toon('#ffffff', { map: facadeTex('#e9dfca', { mortar: false, frame: '#d6c8aa', glass: '#3b5b73', arch: true, rnd: R }) }),
-      greyBrick: toon('#ffffff', { map: facadeTex('#9c9a93', { rnd: R, frame: '#ece8de', glass: '#3d5a70', lintel: '#d6d1c4' }) }),
-      brownstone: toon('#ffffff', { map: facadeTex('#7d5f53', { mortar: false, frame: '#2d2623', glass: '#3a5266', lintel: '#5e3b2e', arch: true, rnd: R }) }),
+      brownstone: toon('#ffffff', { map: facadeTex('#7a4e3d', { mortar: false, frame: '#2d2623', glass: '#3a5266', lintel: '#5e3b2e', arch: true, rnd: R }) }),
     };
-    this.glass = {
-      blue: toon('#ffffff', { map: curtainTex('#5d7f99', '#c9d2d8', '#d9dde0', R) }),
-      teal: toon('#ffffff', { map: curtainTex('#5f8a8c', '#d3d8d6', '#e2e2dc', R) }),
-      white: toon('#ffffff', { map: curtainTex('#6c879b', '#f2f1ec', '#eeece6', R) }),
-    };
-    this.styles.cornerBrick = toon('#ffffff', { map: facadeTex('#a6553f', { rnd: R2, lintel: '#e6dcc6' }) }); // the original red, kept on the corners
     this.shops = ['#2f5d3a', '#a3312a', '#1f3b5c', '#d8a23a', '#3c3a37', '#7a2f4a'].map((c) => toon('#ffffff', { map: shopTex(c, R) }));
     this.awnings = ['#2f6b3f', '#b1372d', '#24466e', '#e0a838', '#efe6d2'].map((c) => toon(c));
     this.m = {
       corniceLight: toon('#efe4cc'), corniceDark: toon('#3d3a38'), roof: toon('#77787c'), iron: toon('#26282b'),
       wood: toon('#8b5a3a'), woodDark: toon('#5b3b28'), steel: toon('#9aa0a6'), stoop: toon('#6d4535'),
       skyline: toon('#a9bccd'), skylineDark: toon('#91a7bb'),
-      lobby: toon('#33414b'), slab: toon('#e4e2dc'), plant: toon('#9b9fa3'),
     };
   }
 
-  add(mat, geo, matrix) { if (this.ghost) return; if (matrix) geo.applyMatrix4(matrix); if (!this.batches.has(mat)) this.batches.set(mat, []); this.batches.get(mat).push(geo); }
+  add(mat, geo, matrix) { if (matrix) geo.applyMatrix4(matrix); if (!this.batches.has(mat)) this.batches.set(mat, []); this.batches.get(mat).push(geo); }
 
   // A building in its own frame: front facade faces +z, base centred at the origin.
-  // skin swaps only the facade material; ghost draws nothing but still uses the same random numbers.
-  building({ x, z, rotY, bays, depth, storeys, style, skin = null, ghost = false, frontage = true, tower = false }) {
-    this.ghost = ghost;
+  building({ x, z, rotY, bays, depth, storeys, style, frontage = true, tower = false }) {
     const R = this.rnd;
     const w = bays * BAY, h = SHOP + storeys * STOREY;
     const M = new THREE.Matrix4().makeRotationY(rotY).setPosition(x, 0, z);
     const at = (gx, gy, gz) => new THREE.Matrix4().multiplyMatrices(M, new THREE.Matrix4().makeTranslation(gx, gy, gz));
-    const mat = this.styles[skin || style];
+    const mat = this.styles[style];
     // upper body, uv offset so windows start above the shopfront
     const body = boxUV(w, h - SHOP, depth, BAY * 2, STOREY * 2);
     this.add(mat, body, at(0, SHOP + (h - SHOP) / 2, 0));
@@ -152,7 +124,7 @@ export class NYCBuilder {
         this.add(aw, g, at(ax, SHOP - 0.55, depth / 2 + 0.7));
       }
       // fire escape on brick walk-ups
-      if (/Brick$/.test(style) && storeys <= 9 && R() < 0.85) this.fireEscape(at, w, depth, storeys);
+      if (style.endsWith('Brick') && storeys <= 9 && R() < 0.85) this.fireEscape(at, w, depth, storeys);
     }
     if (style === 'brownstone') {
       // stoop
@@ -162,7 +134,6 @@ export class NYCBuilder {
     if (!tower && storeys >= 4 && R() < 0.55) this.waterTower(at, (R() - 0.5) * (w - 4), h + 0.6, (R() - 0.5) * (depth - 4));
     // rooftop bulkhead
     if (R() < 0.7) this.add(this.m.roof, new THREE.BoxGeometry(3, 2.4, 3), at((R() - 0.5) * (w - 4), h + 1.6, (R() - 0.5) * (depth - 4)));
-    this.ghost = false;
     return { w, h };
   }
 
@@ -207,28 +178,6 @@ export class NYCBuilder {
       this.add(this.m.steel, new THREE.ConeGeometry(w * 0.55, 9, 8), at(0, y + 4.5, 0));
       this.add(this.m.steel, new THREE.CylinderGeometry(0.15, 0.15, 7, 6), at(0, y + 12, 0));
     }
-    return y;
-  }
-
-  // Modern glass office tower: a tall curtain-wall slab, one optional setback, plant room on top.
-  modern({ x, z, rotY = 0, w, d, storeys, glass = 'blue', setback = true, plant = true, rnd = this.rnd }) {
-    const R = rnd;
-    const M = new THREE.Matrix4().makeRotationY(rotY).setPosition(x, 0, z);
-    const at = (gx, gy, gz) => new THREE.Matrix4().multiplyMatrices(M, new THREE.Matrix4().makeTranslation(gx, gy, gz));
-    const mat = this.glass[glass];
-    this.add(this.m.lobby, new THREE.BoxGeometry(w - 0.6, SHOP + 1, d - 0.6), at(0, (SHOP + 1) / 2, 0));
-    this.add(this.m.slab, new THREE.BoxGeometry(w + 0.4, 0.5, d + 0.4), at(0, SHOP + 1, 0));
-    const lo = setback && R() < 0.55 ? Math.floor(storeys * (0.6 + R() * 0.15)) : storeys;
-    let y = SHOP + 1.25;
-    for (const [n, k] of [[lo, 1], [storeys - lo, 0.78]]) {
-      if (n <= 0) continue;
-      const hh = n * STOREY, ww = w * k, dd = d * k;
-      this.add(mat, boxUV(ww, hh, dd, BAY * 2, STOREY * 2), at(0, y + hh / 2, 0));
-      this.add(this.m.slab, new THREE.BoxGeometry(ww + 0.3, 0.45, dd + 0.3), at(0, y + hh, 0));
-      this.add(this.m.roof, new THREE.BoxGeometry(ww - 0.2, 0.2, dd - 0.2), at(0, y + hh + 0.3, 0));
-      y += hh;
-    }
-    if (plant) this.add(this.m.plant, new THREE.BoxGeometry(w * 0.45, 3.2, d * 0.4), at((R() - 0.5) * w * 0.2, y + 1.8, (R() - 0.5) * d * 0.2));
     return y;
   }
 
