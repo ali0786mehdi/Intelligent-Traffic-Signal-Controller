@@ -336,6 +336,7 @@ export class IntersectionScene {
       lot.receiveShadow = true; this.scene.add(lot);
       for (const row of [0, 1]) for (const axis of ['x', 'z']) {
         let t = FRONT + 0.3 + (axis === 'z' ? 22 : 0) + (row ? 4 : 0);
+        let corner = row === 0; // first frontage building of each run sits on a junction corner
         while (t < 250) {
           const bays = 3 + Math.floor(rnd() * 5);
           const w = bays * 3.2, depth = 17 + rnd() * 6;
@@ -349,9 +350,12 @@ export class IntersectionScene {
           const [hw, hd] = axis === 'x' ? [w / 2, depth / 2] : [depth / 2, w / 2];
           if (free(x - hw, z - hd, x + hw, z + hd)) {
             const style = styles[Math.floor(rnd() * styles.length)];
-            B.building({ x, z, rotY: rot, bays, depth, storeys, style, frontage: row === 0 });
+            // Junction corners are red brick; the east corner is the orange tan brick.
+            const skin = !corner ? null : sx === 1 && axis === 'x' ? 'tanBrick' : 'redBrick';
+            B.building({ x, z, rotY: rot, bays, depth, storeys, style, skin, frontage: row === 0 });
             placed.push([x - hw, z - hd, x + hw, z + hd]);
           }
+          corner = false;
           t += w + (rnd() < 0.12 ? 3.5 : 0.05);
         }
       }

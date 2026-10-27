@@ -94,12 +94,13 @@ export class NYCBuilder {
   add(mat, geo, matrix) { if (matrix) geo.applyMatrix4(matrix); if (!this.batches.has(mat)) this.batches.set(mat, []); this.batches.get(mat).push(geo); }
 
   // A building in its own frame: front facade faces +z, base centred at the origin.
-  building({ x, z, rotY, bays, depth, storeys, style, frontage = true, tower = false }) {
+  // skin swaps only the facade (and cornice) look; style still drives the seeded details, so the layout never shifts.
+  building({ x, z, rotY, bays, depth, storeys, style, skin = null, frontage = true, tower = false }) {
     const R = this.rnd;
     const w = bays * BAY, h = SHOP + storeys * STOREY;
     const M = new THREE.Matrix4().makeRotationY(rotY).setPosition(x, 0, z);
     const at = (gx, gy, gz) => new THREE.Matrix4().multiplyMatrices(M, new THREE.Matrix4().makeTranslation(gx, gy, gz));
-    const mat = this.styles[style];
+    const mat = this.styles[skin || style];
     // upper body, uv offset so windows start above the shopfront
     const body = boxUV(w, h - SHOP, depth, BAY * 2, STOREY * 2);
     this.add(mat, body, at(0, SHOP + (h - SHOP) / 2, 0));
@@ -107,7 +108,7 @@ export class NYCBuilder {
     const shop = boxUV(w + 0.08, SHOP, depth + 0.08, BAY * 2, SHOP);
     this.add(this.shops[Math.floor(R() * this.shops.length)], shop, at(0, SHOP / 2, 0));
     // cornices
-    const corn = style === 'creamBrick' || style === 'limestone' ? this.m.corniceDark : this.m.corniceLight;
+    const corn = (skin || style) === 'creamBrick' || (skin || style) === 'limestone' ? this.m.corniceDark : this.m.corniceLight;
     this.add(corn, new THREE.BoxGeometry(w + 0.9, 0.7, depth + 0.9), at(0, h + 0.1, 0));
     this.add(corn, new THREE.BoxGeometry(w + 0.5, 0.35, depth + 0.5), at(0, SHOP + 0.15, 0));
     this.add(this.m.roof, new THREE.BoxGeometry(w - 0.2, 0.2, depth - 0.2), at(0, h + 0.5, 0));
