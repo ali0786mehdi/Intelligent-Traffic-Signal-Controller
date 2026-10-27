@@ -330,12 +330,14 @@ export class IntersectionScene {
     const free = (x0, z0, x1, z1) => !placed.some((p) => x0 < p[2] && x1 > p[0] && z0 < p[3] && z1 > p[1]);
     const plaza = plazaTex(rnd); plaza.repeat.set(1 / 6, 1 / 6);
     const lotMat = toon('#ffffff', { map: plaza });
-    const styles = ['redBrick', 'redBrick', 'darkBrick', 'tanBrick', 'creamBrick', 'limestone', 'brownstone'];
+    const styles = ['redBrick', 'darkBrick', 'tanBrick', 'creamBrick', 'limestone', 'greyBrick', 'brownstone', 'redBrick', 'creamBrick', 'greyBrick'];
+    const glassKinds = ['blue', 'white', 'teal'];
     for (const [sx, sz] of [[1, -1], [-1, 1], [-1, -1]]) {
       const lot = new THREE.Mesh(flatPolygon([[sx * FRONT, sz * FRONT], [sx * 320, sz * FRONT], [sx * 320, sz * 320], [sx * FRONT, sz * 320]], 0.04), lotMat);
       lot.receiveShadow = true; this.scene.add(lot);
       for (const row of [0, 1]) for (const axis of ['x', 'z']) {
         let t = FRONT + 0.3 + (axis === 'z' ? 22 : 0) + (row ? 4 : 0);
+        let corner = row === 0;
         while (t < 250) {
           const bays = 3 + Math.floor(rnd() * 5);
           const w = bays * 3.2, depth = 17 + rnd() * 6;
@@ -349,9 +351,16 @@ export class IntersectionScene {
           const [hw, hd] = axis === 'x' ? [w / 2, depth / 2] : [depth / 2, w / 2];
           if (free(x - hw, z - hd, x + hw, z + hd)) {
             const style = styles[Math.floor(rnd() * styles.length)];
-            B.building({ x, z, rotY: rot, bays, depth, storeys, style, frontage: row === 0 });
+            // Junction corners keep the original red brick. On the north-east block the south-facing
+            // corner is a darker faded brick and the north one a glass office at the same height.
+            const ne = corner && sx === 1 && sz === -1;
+            const glassCorner = ne && axis === 'z';
+            const skin = !corner ? null : ne ? 'darkBrick' : 'cornerBrick';
+            const { h } = B.building({ x, z, rotY: rot, bays, depth, storeys, style, skin, ghost: glassCorner, frontage: row === 0 });
+            if (glassCorner) B.modern({ x, z, rotY: rot, w, d: depth, storeys: Math.floor((h - 4.4 - 1.25) / 3.4), glass: 'blue', setback: false, plant: false, rnd: B.rnd2 });
             placed.push([x - hw, z - hd, x + hw, z + hd]);
           }
+          corner = false;
           t += w + (rnd() < 0.12 ? 3.5 : 0.05);
         }
       }
@@ -360,7 +369,8 @@ export class IntersectionScene {
         const base = 22 + rnd() * 10;
         const x = sx * (75 + rnd() * 120), z = sz * (75 + rnd() * 120);
         if (!free(x - base / 2, z - base / 2, x + base / 2, z + base / 2)) continue;
-        B.tower({ x, z, rotY: 0, base, storeys: 24 + Math.floor(rnd() * 22), style: rnd() < 0.5 ? 'limestone' : 'creamBrick', spire: rnd() < 0.6 });
+        if (rnd() < 0.35) B.tower({ x, z, rotY: 0, base, storeys: 24 + Math.floor(rnd() * 22), style: rnd() < 0.5 ? 'limestone' : 'creamBrick', spire: rnd() < 0.6 });
+        else B.modern({ x, z, w: base, d: base * (0.75 + rnd() * 0.25), storeys: 22 + Math.floor(rnd() * 22), glass: glassKinds[Math.floor(rnd() * 3)] });
         placed.push([x - base / 2, z - base / 2, x + base / 2, z + base / 2]);
       }
       // infill blocks further out
@@ -368,7 +378,8 @@ export class IntersectionScene {
         const w = 18 + rnd() * 18, d = 18 + rnd() * 18;
         const x = sx * (50 + rnd() * 250), z = sz * (50 + rnd() * 250);
         if (!free(x - w / 2, z - d / 2, x + w / 2, z + d / 2)) continue;
-        B.building({ x, z, rotY: [0, Math.PI / 2, Math.PI, -Math.PI / 2][Math.floor(rnd() * 4)], bays: Math.round(w / 3.2), depth: d, storeys: 5 + Math.floor(rnd() * 12), style: styles[Math.floor(rnd() * styles.length)], frontage: false });
+        if (rnd() < 0.3) B.modern({ x, z, w, d, storeys: 12 + Math.floor(rnd() * 16), glass: glassKinds[Math.floor(rnd() * 3)] });
+        else B.building({ x, z, rotY: [0, Math.PI / 2, Math.PI, -Math.PI / 2][Math.floor(rnd() * 4)], bays: Math.round(w / 3.2), depth: d, storeys: 5 + Math.floor(rnd() * 12), style: styles[Math.floor(rnd() * styles.length)], frontage: false });
         placed.push([x - w / 2, z - d / 2, x + w / 2, z + d / 2]);
       }
     }
