@@ -3,6 +3,39 @@
 
 ---
 
+## How to run
+
+### 1. Training and evaluation (SUMO + PyTorch, in Docker)
+
+The only prerequisite is Docker Desktop, running (`docker ps` should succeed). SUMO and Python run inside the container.
+
+```powershell
+# Windows (PowerShell)
+.\run.ps1 all          # build image, verify SUMO, tests, baselines, train, evaluate, ablation
+```
+
+```bash
+# Linux / macOS
+make all
+```
+
+Single steps, in order: `build`, `verify`, `test`, `baselines`, `train`, `evaluate`, `phase7` (for example `.\run.ps1 evaluate` or `make evaluate`). Results go to `results/logs/` (CSVs) and `results/plots/` (charts), and model checkpoints go to `agent/models/`. See [README_BUILD.md](README_BUILD.md) for tuning options and [REPORT.md](REPORT.md) for the results.
+
+### 2. 3D web view (`ui3d/`)
+
+Needs Node.js 18 or newer.
+
+```bash
+cd ui3d
+npm install
+npm run dev        # open http://localhost:5173
+npm run build      # writes ui3d/dist/index.html, a single file you can open from disk
+```
+
+Controls, keyboard shortcuts and what the view shows are in [ui3d/README.md](ui3d/README.md).
+
+---
+
 ## 1. The Real Structure of This Project
 
 Don't think of this as "one AI project." It's three linked sub-projects:
