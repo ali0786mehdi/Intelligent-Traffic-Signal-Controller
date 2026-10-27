@@ -351,7 +351,9 @@ export class IntersectionScene {
           if (free(x - hw, z - hd, x + hw, z + hd)) {
             const style = styles[Math.floor(rnd() * styles.length)];
             // Junction corners are red brick; the east corner is the orange tan brick.
-            const skin = !corner ? null : sx === 1 && axis === 'x' ? 'tanBrick' : 'redBrick';
+            // The one plain frontage building left near the junction becomes dark brick.
+            const plainNear = row === 0 && t < 50 && (style === 'limestone' || style === 'creamBrick');
+            const skin = corner ? (sx === 1 && axis === 'x' ? 'tanBrick' : 'redBrick') : plainNear ? 'darkBrick' : null;
             B.building({ x, z, rotY: rot, bays, depth, storeys, style, skin, frontage: row === 0 });
             placed.push([x - hw, z - hd, x + hw, z + hd]);
           }
