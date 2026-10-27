@@ -34,6 +34,8 @@ npm run build      # writes ui3d/dist/index.html, a single file you can open fro
 
 Controls, keyboard shortcuts and what the view shows are in [ui3d/README.md](ui3d/README.md).
 
+Presenting the project? See [PRESENTATION.md](PRESENTATION.md) for a talk outline, demo steps and likely questions.
+
 ---
 
 ## 1. The Real Structure of This Project

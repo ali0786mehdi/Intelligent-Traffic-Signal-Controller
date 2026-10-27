@@ -10,7 +10,7 @@ A plain-language guide for presenting this project in a viva or demo: what to sa
 >
 > We built a traffic light controller that learns. It watches the junction, sees which roads have cars queued, and decides which direction gets the green. It learned this by practising thousands of times in a traffic simulator called SUMO.
 >
-> We compared it against two normal controllers: a fixed timer, and an "actuated" controller that extends the green while cars keep arriving. Our learned controller cut the average waiting time by about 75–83% compared with the fixed timer and by 18–38% compared with the actuated one, while letting the same number of cars through.
+> We compared it against two normal controllers: a fixed timer, and an "actuated" controller that extends the green while cars keep arriving. Our learned controller cut the average waiting time by 76–83% compared with the fixed timer and by 18–38% compared with the actuated one, while letting the same number of cars through.
 
 If you only get one minute, say that.
 
@@ -53,7 +53,7 @@ Show this table (average waiting time in seconds, lower is better):
 Points to make:
 - It wins in all three traffic patterns, including against the actuated controller, which is a strong baseline.
 - All three controllers let through the same number of cars. The improvement is **less waiting**, not fewer cars served.
-- Estimated CO₂ was roughly 7–9 times lower, because cars idle and stop-start less. Call this an estimate from the simulator, not a measurement.
+- Estimated CO₂ was roughly 6–9 times lower than with the other two controllers, because cars idle and stop-start less. Call this an estimate from the simulator, not a measurement.
 
 ### Step 6: Mixed traffic (1 min, optional)
 - We also tested a mixed fleet of cars, motorbikes, autos and buses.
