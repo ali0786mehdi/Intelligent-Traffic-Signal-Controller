@@ -60,7 +60,39 @@ python ui3d/tools/export_weights.py agent/models/dqn_asymmetric.pt dqn_asymmetri
 ## Controls
 
 Drag to orbit, scroll or pinch to zoom. `Space` plays or pauses, `1` `2` `3` choose the
-controller in view, `A` paints the state on the road.
+controller in view, `A` paints the state on the road, and `L` (or the Signals button)
+shows or hides a small signal badge above each approach's overhead head, so every
+approach's light and countdown can be read from any angle. In the painted state, each
+lane's queue is an amber strip that grows back from the stop line one car length per
+queued vehicle, with the count shown above the stop line. The Tour camera slowly circles
+the junction for demos.
+
+URL options: `?scenario=hetero` opens a scenario, `?warm=600` fast-forwards the
+simulation 600 s before it starts, and `?q=high` keeps ambient occlusion on even on a
+slow GPU (by default the view drops AO, then resolution, if frames take over 30 ms).
 
 `node tools/shoot.mjs` takes desktop and mobile screenshots of the build with local
 Edge or Chrome.
+
+## Look and assets
+
+The scene is a stylized, toon-shaded New York block at mid-morning. The art direction is
+in `DESIGN.md`.
+
+Almost everything is procedural:
+- `src/nyc.js` builds the brick and brownstone buildings (fire escapes, water towers,
+  art-deco towers) and the skyline.
+- `src/stylize.js` provides the toon materials, canvas textures, grass, tree canopies and
+  clouds.
+- `src/scene.js` builds the road, park, street props and signals.
+
+The only external asset is the car set:
+
+| Asset | Source | Licence |
+|---|---|---|
+| Cars (sedan, sports, hatchback, SUV, luxury SUV, taxi, van) | [Kenney Car Kit](https://kenney.nl/assets/car-kit) | CC0 |
+
+`node tools/fetch-assets.mjs` downloads the kit and packs it into `src/assets/cars.glb`
+with gltf-transform. The packed file is committed, so you only need the script to change
+it. Car paint colours are swapped per vehicle in the shader. Buses, motorcycles with
+riders, and autos are modelled in code.

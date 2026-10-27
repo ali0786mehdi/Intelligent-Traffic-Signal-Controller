@@ -11,14 +11,16 @@ const exe = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
 ].find((p) => fs.existsSync(p));
-const url = pathToFileURL(path.join(here, '..', 'dist', 'index.html')).href;
+const url = pathToFileURL(path.join(here, '..', 'dist', 'index.html')).href + (process.env.QS ?? '?q=high');
 
 const browser = await puppeteer.launch({ executablePath: exe, headless: 'new', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const shots = [
   { name: 'desktop', w: 1440, h: 900, dpr: 1, act: async () => {} },
-  { name: 'desktop-agent', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#agentToggle'); await sleep(1800); } },
+  { name: 'desktop-agent', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#agentToggle'); await sleep(4000); } },
   { name: 'desktop-board', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#agentToggle'); await p.click('#boardBtn'); await sleep(1500); } },
-  { name: 'desktop-street', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#viewSeg button:nth-child(2)'); await p.click('#raceRows button:nth-child(1)'); await sleep(1800); } },
+  { name: 'desktop-street', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#viewSeg button:nth-of-type(2)'); await p.click('#raceRows button:nth-child(1)'); await sleep(4000); } },
+  { name: 'desktop-plan', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#viewSeg button:nth-of-type(3)'); await p.click('#raceRows button:nth-child(2)'); await sleep(4000); } },
+  { name: 'desktop-tour', w: 1440, h: 900, dpr: 1, act: async (p) => { await p.click('#viewSeg button:nth-of-type(4)'); await sleep(5000); } },
   { name: 'mobile', w: 390, h: 844, dpr: 2, mobile: true, act: async () => {} },
   { name: 'mobile-scrolled', w: 390, h: 844, dpr: 2, mobile: true, act: async (p) => { await p.evaluate(() => window.scrollTo(0, 700)); await sleep(600); } },
 ];
